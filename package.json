@@ -1,16 +1,17 @@
 {
-  "name": "worker-typescript-template",
+  "name": "regenetron",
   "version": "1.0.0",
-  "description": "Cloudflare worker TypeScript template",
+  "description": "Redirect Generator and Transformer Robot",
   "main": "dist/worker.js",
   "scripts": {
     "build": "webpack",
     "format": "prettier --write  '*.{json,js}' 'src/**/*.{js,ts}' 'test/**/*.{js,ts}'",
     "lint": "eslint --max-warnings=0 src && prettier --check '*.{json,js}' 'src/**/*.{js,ts}' 'test/**/*.{js,ts}'",
-    "test": "jest --config jestconfig.json --verbose"
+    "prettier": "prettier --write '*.{json,js}' 'src/**/*.{js,ts}' 'test/**/*.{js,ts}'",
+    "test": "jest --config jestconfig.json --npmverbose"
   },
-  "author": "author",
-  "license": "MIT OR Apache-2.0",
+  "author": "Taylor Smith <tsmith@cloudflare.com>",
+  "license": "Internal Use Only",
   "eslintConfig": {
     "root": true,
     "extends": [
