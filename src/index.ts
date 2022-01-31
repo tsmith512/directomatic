@@ -7,7 +7,7 @@ declare global {
   const GSHEETS_API_KEY: string;
 }
 
-import { fetchRedirectRows } from './sourcing';
+import { fetchRedirectRows } from './inputs';
 
 export type RedirectCode = 301 | 302 | 307 | 308;
 
@@ -19,8 +19,19 @@ export interface RedirectProps {
   deleted: boolean;
 }
 
+export interface RawRedirectProps {
+  source: string;
+  destination: string;
+  code?: string | number;
+  localized?: string | boolean;
+  deleted?: string | boolean;
+}
+
 const handleRequest = async (): Promise<Response> => {
-  return new Response(JSON.stringify(await fetchRedirectRows()));
+  const rawRows = await fetchRedirectRows();
+  return new Response(JSON.stringify(rawRows), {
+    headers: { 'content-type': 'application/json' },
+  });
 };
 
 addEventListener('fetch', (event: any) => {

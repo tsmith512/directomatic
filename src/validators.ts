@@ -5,8 +5,13 @@ export const validatePath = (input: string): string => {
   return input;
 };
 
-export const validateBoolean = (input: string, preferred: boolean): boolean => {
-  if (typeof input === 'undefined' || input.length === 0) {
+export const validateBoolean = (
+  input: string | boolean | undefined,
+  preferred: boolean
+): boolean => {
+  if (typeof input === 'undefined') {
+    return preferred;
+  } else if (typeof input === 'string' && input.length === 0) {
     return preferred;
   }
   const test = input.toString().toLowerCase();
@@ -20,7 +25,7 @@ export const validateBoolean = (input: string, preferred: boolean): boolean => {
 };
 
 export const validateCode = (
-  input: number | string,
+  input: number | string | undefined,
   preferred: RedirectCode
 ): RedirectCode => {
   if (!input) {
