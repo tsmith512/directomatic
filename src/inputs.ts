@@ -1,7 +1,13 @@
-import { RawRedirectProps } from '.';
+import { RawRedirectProps, RedirectProps } from '.';
+import { processSheetRow } from './processing';
 
-export const fetchRedirectRows = async (): Promise<RawRedirectProps[]> => {
-  const lookup = `${GSHEETS_API_ENDPOINT}/${GSHEETS_ID}/values/Redirects!A:D?key=${GSHEETS_API_KEY}&valueRenderOption=UNFORMATTED_VALUE`;
+/**
+ * Look up the spreadsheet, pull all its rows, and process them into redirect
+ * with sanitized and normalized properties.
+ * @returns (Promise of RecirectProps[]) An array of redirects to enter.
+ */
+export const fetchRedirectRows = async (): Promise<RedirectProps[]> => {
+  const lookup = `${GSHEETS_API_ENDPOINT}/${GSHEETS_ID}/values/Redirects!A:E?key=${GSHEETS_API_KEY}&valueRenderOption=UNFORMATTED_VALUE`;
 
   return await fetch(lookup)
     .then((response) => response.json())
@@ -19,13 +25,21 @@ export const fetchRedirectRows = async (): Promise<RawRedirectProps[]> => {
         .shift()
         .map((header: string) => header.replace(/:.+/, ''));
 
-      return rows.map((row: any) => {
-        return mergeHeaders(headers, row);
-        // return processSheetRow(unverifiedRedirect);
+      // Now process each object to sanitize it as a real RediredtProps we can
+      // submit. Use flatMap to easily drop anything that doesn't validate.
+      return rows.flatMap((row: any) => {
+        return processSheetRow(mergeHeaders(headers, row)) ?? [];
       });
     });
 };
 
+/**
+ * Merges an array of keys and an array of values into an object.
+ *
+ * @param headers (string[]) the keys
+ * @param row (any[]) the values
+ * @returns (object) of {headers[0]: row[0], ... }
+ */
 const mergeHeaders = (headers: string[], row: any[]) => {
   const entries = [];
 
