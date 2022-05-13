@@ -70,7 +70,7 @@ const handleRequest = async (): Promise<Response> => {
   // Send the processed list to CF
   const uploadResponse = await uploadBulkList(bulkList);
 
-  return new Response(JSON.stringify(bulkList), {
+  return new Response(JSON.stringify(uploadResponse), {
     headers: { 'content-type': 'application/json' },
   });
 };
