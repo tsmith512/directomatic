@@ -37,19 +37,19 @@ export const processSheetRow = (input: RawRedirectProps): RedirectProps | null =
 
 
 /**
- * Given a redirect destination, if it has no hostname, add the locale prefix if
+ * Given a redirect src/dest, if it has no hostname, add the locale prefix if
  * provided and prepend the default hostname. Otherwise leave unchanged.
  *
  * @param destination (string) The redirect target.
  * @param locale (string?) Optional. A locale for prefixing.
  * @returns (string) The full URL to redirect to.
  */
-const makeDestination = (destination: string, locale?: string): string => {
-  if (destination.indexOf('/') === 0) {
-    return DEFAULT_DEST_DOMAIN + (locale ? `/${locale}` : '') + destination;
+const makeFullURL = (path: string, locale?: string): string => {
+  if (path.indexOf('/') === 0) {
+    return DEFAULT_DEST_DOMAIN + (locale ? `/${locale}` : '') + path;
   }
 
-  return destination;
+  return path;
 }
 
 /**
@@ -62,8 +62,8 @@ const makeDestination = (destination: string, locale?: string): string => {
 export const processBulkList = (input: RedirectProps[]): BulkRedirectListItem[] => {
   return input.flatMap(row => {
     const list = [{
-      source_url: row.source,
-      target_url: makeDestination(row.destination),
+      source_url: makeFullURL(row.source),
+      target_url: makeFullURL(row.destination),
       status_code: row.code,
     }];
 
@@ -77,8 +77,8 @@ export const processBulkList = (input: RedirectProps[]): BulkRedirectListItem[] 
 
         // For other locales, add a redirect for that locale, too.
         list.push({
-          source_url: `/${locale}${row.source}`,
-          target_url: makeDestination(row.destination, locale),
+          source_url: makeFullURL(row.source, locale),
+          target_url: makeFullURL(row.destination, locale),
           status_code: row.code,
         });
       }
