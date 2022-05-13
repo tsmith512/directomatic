@@ -1,15 +1,20 @@
 declare global {
   // In wrangler.toml
   const GSHEETS_API_ENDPOINT: string;
+  const CF_API_ENDPOINT: string;
   const DEFAULT_DEST_DOMAIN: string;
 
   // In secrets
   const GSHEETS_ID: string;
   const GSHEETS_API_KEY: string;
+  const CF_ACCT_ID: string; // Really, account TAG
+  const CF_LIST_ID: string;
+  const CF_API_TOKEN: string;
 }
 
 import { fetchRedirectRows } from './inputs';
 import { processBulkList, processSheetRow } from './processing';
+import { uploadBulkList } from './outputs';
 
 export type RedirectCode = 301 | 302 | 307 | 308;
 
@@ -36,10 +41,15 @@ export interface BulkRedirectList {
 }
 
 export interface BulkRedirectListItem {
+  redirect: BulkRedirectListItemDetails;
+}
+
+export interface BulkRedirectListItemDetails {
   source_url: string;
   target_url: string;
   status_code: number;
 }
+
 
 // @TODO: This is not complete; just for initial dev.
 export const Locales = ['en-us', 'de-de', 'es-es'];
@@ -54,7 +64,11 @@ const handleRequest = async (): Promise<Response> => {
     return processSheetRow(row) ?? [];
   });
 
+  // Get the final formatted list of redirects to upload
   const bulkList = processBulkList(redirectsList);
+
+  // Send the processed list to CF
+  const uploadResponse = await uploadBulkList(bulkList);
 
   return new Response(JSON.stringify(bulkList), {
     headers: { 'content-type': 'application/json' },

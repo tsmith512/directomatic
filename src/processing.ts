@@ -84,6 +84,8 @@ export const processBulkList = (input: RedirectProps[]): BulkRedirectListItem[] 
       }
     }
 
-    return list;
+    // Per https://developers.cloudflare.com/rules/bulk-redirects/create-api/
+    // the actual stucture isn't an array of rules, it's an array of { redirect: rule }
+    return list.map(row => ({ redirect: row }));
   });
 };
