@@ -8,6 +8,7 @@ declare global {
 }
 
 import { fetchRedirectRows } from './inputs';
+import { processSheetRow } from './processing';
 
 export type RedirectCode = 301 | 302 | 307 | 308;
 
@@ -27,9 +28,20 @@ export interface RawRedirectProps {
   deleted?: string | boolean;
 }
 
+// @TODO: This is not complete; just for initial dev.
+export const Locales = ['en-us', 'de-de', 'es-es'];
+
 const handleRequest = async (): Promise<Response> => {
-  const rawRows = await fetchRedirectRows();
-  return new Response(JSON.stringify(rawRows), {
+  // Source the unprocessed redirects list from the Google Sheet. They'll have
+  // the right keys but values aren't checked yet.
+  const inputRows = await fetchRedirectRows();
+
+  // Sanitize, validate, and clean up the input list into our final list
+  const redirectsList = inputRows.flatMap((row) => {
+    return processSheetRow(row) ?? [];
+  });
+
+  return new Response(JSON.stringify(redirectsList), {
     headers: { 'content-type': 'application/json' },
   });
 };
