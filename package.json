@@ -1,5 +1,5 @@
 {
-  "name": "regenetron",
+  "name": "directomatic",
   "version": "1.0.0",
   "description": "Redirect Generator and Transformer Robot",
   "main": "dist/worker.js",
