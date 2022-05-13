@@ -1,6 +1,7 @@
 declare global {
   // In wrangler.toml
   const GSHEETS_API_ENDPOINT: string;
+  const DEFAULT_DEST_DOMAIN: string;
 
   // In secrets
   const GSHEETS_ID: string;

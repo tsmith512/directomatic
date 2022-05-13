@@ -35,6 +35,23 @@ export const processSheetRow = (input: RawRedirectProps): RedirectProps | null =
   return redirect;
 };
 
+
+/**
+ * Given a redirect destination, if it has no hostname, add the locale prefix if
+ * provided and prepend the default hostname. Otherwise leave unchanged.
+ *
+ * @param destination (string) The redirect target.
+ * @param locale (string?) Optional. A locale for prefixing.
+ * @returns (string) The full URL to redirect to.
+ */
+const makeDestination = (destination: string, locale?: string): string => {
+  if (destination.indexOf('/') === 0) {
+    return DEFAULT_DEST_DOMAIN + (locale ? `/${locale}` : '') + destination;
+  }
+
+  return destination;
+}
+
 /**
  * Tahe the list of redirect rows, add the destination domain, make an item for
  * each locale, and return them as objects ready for Dash.
@@ -46,7 +63,7 @@ export const processBulkList = (input: RedirectProps[]): BulkRedirectListItem[] 
   return input.flatMap(row => {
     const list = [{
       source_url: row.source,
-      target_url: row.destination,
+      target_url: makeDestination(row.destination),
       status_code: row.code,
     }];
 
@@ -61,7 +78,7 @@ export const processBulkList = (input: RedirectProps[]): BulkRedirectListItem[] 
         // For other locales, add a redirect for that locale, too.
         list.push({
           source_url: `/${locale}${row.source}`,
-          target_url: `/${locale}${row.destination}`,
+          target_url: makeDestination(row.destination, locale),
           status_code: row.code,
         });
       }
