@@ -1,4 +1,4 @@
-import { RawRedirectProps, RedirectProps } from '.';
+import { BulkRedirectListItem, Locales, RawRedirectProps, RedirectProps } from '.';
 import { validateBoolean, validatePath, validateCode } from './validators';
 
 export const processSheetRow = (input: RawRedirectProps): RedirectProps | null => {
@@ -33,4 +33,40 @@ export const processSheetRow = (input: RawRedirectProps): RedirectProps | null =
   }
 
   return redirect;
+};
+
+/**
+ * Tahe the list of redirect rows, add the destination domain, make an item for
+ * each locale, and return them as objects ready for Dash.
+ *
+ * @param input (RedirectProps[]) A clean list of redirect entries
+ * @returns (BulkRedirectListItem[]) Raw redirect list entries for a CF Bulk Redirect List
+ */
+export const processBulkList = (input: RedirectProps[]): BulkRedirectListItem[] => {
+  return input.flatMap(row => {
+    const list = [{
+      source_url: row.source,
+      target_url: row.destination,
+      status_code: row.code,
+    }];
+
+    // Add in locale-prefixed paths for localized redirects.
+    if (row.localized) {
+      for (const locale of Locales) {
+        // We don't use en-us as a locale prefix on Marketing Site.
+        if (locale === 'en-us') {
+          continue;
+        }
+
+        // For other locales, add a redirect for that locale, too.
+        list.push({
+          source_url: `/${locale}${row.source}`,
+          target_url: `/${locale}${row.destination}`,
+          status_code: row.code,
+        });
+      }
+    }
+
+    return list;
+  });
 };

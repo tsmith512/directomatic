@@ -8,7 +8,7 @@ declare global {
 }
 
 import { fetchRedirectRows } from './inputs';
-import { processSheetRow } from './processing';
+import { processBulkList, processSheetRow } from './processing';
 
 export type RedirectCode = 301 | 302 | 307 | 308;
 
@@ -28,6 +28,18 @@ export interface RawRedirectProps {
   deleted?: string | boolean;
 }
 
+export interface BulkRedirectList {
+  name: string;
+  description: string;
+  kind: 'redirect';
+}
+
+export interface BulkRedirectListItem {
+  source_url: string;
+  target_url: string;
+  status_code: number;
+}
+
 // @TODO: This is not complete; just for initial dev.
 export const Locales = ['en-us', 'de-de', 'es-es'];
 
@@ -41,7 +53,9 @@ const handleRequest = async (): Promise<Response> => {
     return processSheetRow(row) ?? [];
   });
 
-  return new Response(JSON.stringify(redirectsList), {
+  const bulkList = processBulkList(redirectsList);
+
+  return new Response(JSON.stringify(bulkList), {
     headers: { 'content-type': 'application/json' },
   });
 };
