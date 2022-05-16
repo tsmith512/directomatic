@@ -15,11 +15,13 @@ export const processSheetRow = (input: RawRedirectProps): RedirectProps | null =
       deleted: validateBoolean(input.deleted, false),
     };
   } catch {
+    console.log(`Redirect from ${redirect?.source} to ${redirect?.destination} is invalid.`);
     return null;
   }
 
   // Now sanity check the object as a whole.
   if (redirect.source === redirect.destination) {
+    console.log(`Redirect from ${redirect.source} redirects to itself.`);
     return null;
   }
 
