@@ -1,4 +1,22 @@
-import { BulkRedirectListItem } from "."
+import {  DirectomaticResponse, Locales, RedirectProps } from "."
+import { makeFullURL } from "./processing";
+
+export interface BulkRedirectList {
+  name: string;
+  description: string;
+  kind: 'redirect';
+}
+
+export interface BulkRedirectListItem {
+  redirect: BulkRedirectListItemDetails;
+}
+
+export interface BulkRedirectListItemDetails {
+  source_url: string;
+  target_url: string;
+  status_code: number;
+}
+
 
 // For the list metadata
 const listApi = `${CF_API_ENDPOINT}/accounts/${CF_ACCT_ID}/rules/lists/${CF_LIST_ID}`;
@@ -14,7 +32,46 @@ export interface BulkUploadReport {
   invalid_rules: BulkRedirectListItem[];
 }
 
-export const uploadBulkList = async (list: BulkRedirectListItem[]): Promise<any> => {
+
+/**
+ * Take the list of redirect rows, add the destination domain, make an item for
+ * each locale, and return them as objects ready for Dash.
+ *
+ * @param input (RedirectProps[]) A clean list of redirect entries
+ * @returns (BulkRedirectListItem[]) Raw redirect list entries for a CF Bulk Redirect List
+ */
+ export const makeBulkList = (input: RedirectProps[]): BulkRedirectListItem[] => {
+  return input.flatMap(row => {
+    const list = [{
+      source_url: makeFullURL(row.source),
+      target_url: makeFullURL(row.destination),
+      status_code: row.code,
+    }];
+
+    // Add in locale-prefixed paths for localized redirects.
+    if (row.localized) {
+      for (const locale of Locales) {
+        // We don't use en-us as a locale prefix on Marketing Site.
+        if (locale === 'en-us') {
+          continue;
+        }
+
+        // For other locales, add a redirect for that locale, too.
+        list.push({
+          source_url: makeFullURL(row.source, locale),
+          target_url: makeFullURL(row.destination, locale),
+          status_code: row.code,
+        });
+      }
+    }
+
+    // Per https://developers.cloudflare.com/rules/bulk-redirects/create-api/
+    // the actual stucture isn't an array of rules, it's an array of { redirect: rule }
+    return list.map(row => ({ redirect: row }));
+  });
+};
+
+export const uploadBulkList = async (list: BulkRedirectListItem[]): Promise<DirectomaticResponse> => {
   const response: any = await fetch(listItemsApi, {
     method: 'PUT',
     headers: {
@@ -24,9 +81,8 @@ export const uploadBulkList = async (list: BulkRedirectListItem[]): Promise<any>
     body: JSON.stringify(list),
   }).then(res => res.json());
 
-  const report: BulkUploadReport = {
+  const report: DirectomaticResponse = {
     success: response?.success || false,
-    operation_id: response?.result?.operation_id || undefined,
     errors: response?.errors || null,
     messages: response?.messages || null,
     invalid_rules: [],
@@ -44,9 +100,7 @@ export const uploadBulkList = async (list: BulkRedirectListItem[]): Promise<any>
         'authorization': `Bearer ${CF_API_TOKEN}`,
       },
       body: JSON.stringify({ description: `Updated by Directomatic on ${Date()}`}),
-    })
-    .then(res => res.json())
-    .then(payload => console.log(JSON.stringify(payload, null, 2)));
+    });
   }
 
   return report;

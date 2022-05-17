@@ -1,4 +1,4 @@
-import { BulkRedirectListItem, Locales, RawRedirectProps, RedirectProps } from '.';
+import { RawRedirectProps, RedirectProps } from '.';
 import { validateBoolean, validatePath, validateCode } from './validators';
 
 export const processSheetRow = (input: RawRedirectProps): RedirectProps | null => {
@@ -46,48 +46,10 @@ export const processSheetRow = (input: RawRedirectProps): RedirectProps | null =
  * @param locale (string?) Optional. A locale for prefixing.
  * @returns (string) The full URL to redirect to.
  */
-const makeFullURL = (path: string, locale?: string): string => {
+export const makeFullURL = (path: string, locale?: string): string => {
   if (path.indexOf('/') === 0) {
     return DEFAULT_DEST_DOMAIN + (locale ? `/${locale}` : '') + path;
   }
 
   return path;
 }
-
-/**
- * Tahe the list of redirect rows, add the destination domain, make an item for
- * each locale, and return them as objects ready for Dash.
- *
- * @param input (RedirectProps[]) A clean list of redirect entries
- * @returns (BulkRedirectListItem[]) Raw redirect list entries for a CF Bulk Redirect List
- */
-export const processBulkList = (input: RedirectProps[]): BulkRedirectListItem[] => {
-  return input.flatMap(row => {
-    const list = [{
-      source_url: makeFullURL(row.source),
-      target_url: makeFullURL(row.destination),
-      status_code: row.code,
-    }];
-
-    // Add in locale-prefixed paths for localized redirects.
-    if (row.localized) {
-      for (const locale of Locales) {
-        // We don't use en-us as a locale prefix on Marketing Site.
-        if (locale === 'en-us') {
-          continue;
-        }
-
-        // For other locales, add a redirect for that locale, too.
-        list.push({
-          source_url: makeFullURL(row.source, locale),
-          target_url: makeFullURL(row.destination, locale),
-          status_code: row.code,
-        });
-      }
-    }
-
-    // Per https://developers.cloudflare.com/rules/bulk-redirects/create-api/
-    // the actual stucture isn't an array of rules, it's an array of { redirect: rule }
-    return list.map(row => ({ redirect: row }));
-  });
-};

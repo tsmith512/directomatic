@@ -13,11 +13,14 @@ declare global {
 }
 
 import { fetchRedirectRows } from './inputs';
-import { processBulkList, processSheetRow } from './processing';
-import { uploadBulkList } from './outputs';
+import { processSheetRow } from './processing';
+import { BulkRedirectListItem, makeBulkList, uploadBulkList } from './outputs';
 
 export type RedirectCode = 301 | 302 | 307 | 308;
 
+/**
+ * A validated and sanitized redirect object.
+ */
 export interface RedirectProps {
   source: string;
   destination: string;
@@ -26,6 +29,9 @@ export interface RedirectProps {
   deleted: boolean;
 }
 
+/**
+ * A raw spreadsheet row that could be a redirect object.
+ */
 export interface RawRedirectProps {
   source: string;
   destination: string;
@@ -34,22 +40,15 @@ export interface RawRedirectProps {
   deleted?: string | boolean;
 }
 
-export interface BulkRedirectList {
-  name: string;
-  description: string;
-  kind: 'redirect';
+/**
+ * Work-in-progress, but all responses from this service will be one of these.
+ */
+export interface DirectomaticResponse {
+  success?: boolean; // If an action was requested
+  errors?: any[];
+  messages: any[];
+  invalid_rules: BulkRedirectListItem[];
 }
-
-export interface BulkRedirectListItem {
-  redirect: BulkRedirectListItemDetails;
-}
-
-export interface BulkRedirectListItemDetails {
-  source_url: string;
-  target_url: string;
-  status_code: number;
-}
-
 
 // @TODO: This is not complete; just for initial dev.
 export const Locales = ['en-us', 'de-de', 'es-es'];
@@ -65,7 +64,7 @@ const handleRequest = async (): Promise<Response> => {
   });
 
   // Get the final formatted list of redirects to upload
-  const bulkList = processBulkList(redirectsList);
+  const bulkList = makeBulkList(redirectsList);
 
   // Send the processed list to CF
   const uploadResponse = await uploadBulkList(bulkList);
