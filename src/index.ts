@@ -12,6 +12,8 @@ declare global {
   const CF_API_TOKEN: string;
 }
 
+import { Router } from 'itty-router';
+
 import { fetchRedirectRows } from './inputs';
 import { processSheetRow } from './processing';
 import { BulkRedirectListItem, makeBulkList, uploadBulkList } from './outputs';
@@ -53,7 +55,15 @@ export interface DirectomaticResponse {
 // @TODO: This is not complete; just for initial dev.
 export const Locales = ['en-us', 'de-de', 'es-es'];
 
-const handleRequest = async (): Promise<Response> => {
+const router = Router();
+
+router.get('/', () => {
+  return new Response(JSON.stringify({ messages: ['Directomatic says hello.']}), {
+    headers: { 'content-type': 'application/json' },
+  });
+});
+
+router.get('/publish', async () => {
   // Source the unprocessed redirects list from the Google Sheet. They'll have
   // the right keys but values aren't checked yet.
   const inputRows = await fetchRedirectRows();
@@ -72,10 +82,10 @@ const handleRequest = async (): Promise<Response> => {
   return new Response(JSON.stringify(uploadResponse), {
     headers: { 'content-type': 'application/json' },
   });
-};
+});
 
 addEventListener('fetch', (event: any) => {
-  event.respondWith(handleRequest());
+  event.respondWith(router.handle(event.request));
 });
 
 export {};
