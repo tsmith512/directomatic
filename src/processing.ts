@@ -1,6 +1,14 @@
 import { RawRedirectProps, RedirectProps } from '.';
+import { BulkRedirectListItem } from './outputs';
 import { validateBoolean, validatePath, validateCode } from './validators';
 
+/**
+ * Given raw input, sanitize and validate. Report errors to console/logs and
+ * return null to prevent anything weird being published.
+ *
+ * @param input (RawRedirectProps) A row from the spreadsheet
+ * @returns (RedirectProps | null) Validated/sanitized redirect or null on error
+ */
 export const processSheetRow = (input: RawRedirectProps): RedirectProps | null => {
   let redirect;
 
@@ -37,7 +45,6 @@ export const processSheetRow = (input: RawRedirectProps): RedirectProps | null =
   return redirect;
 };
 
-
 /**
  * Given a redirect src/dest, if it has no hostname, add the locale prefix if
  * provided and prepend the default hostname. Otherwise leave unchanged.
@@ -52,4 +59,32 @@ export const makeFullURL = (path: string, locale?: string): string => {
   }
 
   return path;
-}
+};
+
+/**
+ * Do these two redirects match?
+ *
+ * @param a (BulkRedirectListItem) A redirect item to test
+ * @param b (BulkRedirectListItem) A redirect item to test
+ * @returns (boolean)
+ */
+export const redirectCompare = (a: BulkRedirectListItem, b: BulkRedirectListItem): boolean => {
+  return (
+    (a.redirect.source_url === b.redirect.source_url) &&
+    (a.redirect.target_url === b.redirect.target_url) &&
+    (a.redirect.status_code === b.redirect.status_code)
+  );
+};
+
+/**
+ * Is the provided redirect in the given list?
+ *
+ * @param needle (BulkRedirectListItem) A redirect to find
+ * @param haystack (BulkRedirectListItem[]) The list to find it in
+ * @returns (boolean)
+ */
+export const ruleInList = (needle: BulkRedirectListItem, haystack: BulkRedirectListItem[]): boolean => {
+  return haystack.findIndex(test => {
+    return redirectCompare(needle, test);
+  }) !== -1;
+};

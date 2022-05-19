@@ -16,8 +16,8 @@ declare global {
 import { Router } from 'itty-router';
 
 import { checkSpreadsheetStatus, fetchRedirectRows } from './inputs';
-import { processSheetRow } from './processing';
-import { BulkRedirectListItem, getBulkListStatus, makeBulkList, uploadBulkList } from './outputs';
+import { processSheetRow, ruleInList } from './processing';
+import { BulkRedirectListItem, getBulkListContents, getBulkListStatus, makeBulkList, uploadBulkList } from './outputs';
 import { validateBoolean } from './validators';
 import { authCheck } from './auth';
 
@@ -126,6 +126,49 @@ router.get('/list', async () => {
     ],
     inputRows: redirectsList,
     invalidRules: badRows,
+  }), {
+    headers: { 'content-type': 'application/json' },
+  });
+});
+
+/**
+ * GET /diff
+ *
+ * Pull and process the redirects from the spreadsheet to report on what will be
+ * added and what will be removed on a subsequent /publish.
+ */
+router.get('/diff', async () => {
+  // Source the unprocessed redirects list from the Google Sheet.
+  const inputRows = await fetchRedirectRows();
+
+  // Sanitize, validate, to make the final list
+  const redirectsList = inputRows.flatMap((row) => {
+    return processSheetRow(row) ?? [];
+  });
+
+  // Format as needed for the Cloudflare Ruleset API
+  const spreadsheetList = makeBulkList(redirectsList);
+
+  // Get the current list
+  const cloudflareList = await getBulkListContents();
+
+  // We need to see what cloudflareList rules aren't in spreadsheetList
+  const removedRules = cloudflareList.filter(rule => {
+    return !ruleInList(rule, spreadsheetList);
+  });
+
+  // We need to see what spreadsheetList rules aren't in cloudflareList
+  const addedRules = spreadsheetList.filter(rule => {
+    return !ruleInList(rule, cloudflareList);
+  });
+
+  return new Response(JSON.stringify({
+    messages: [
+      [`There are ${addedRules.length} rules to add (in spreadsheet but not published).`],
+      [`There are ${removedRules.length} rules to remove (published but not in spreadsheet).`],
+      {addedRules},
+      {removedRules},
+    ],
   }), {
     headers: { 'content-type': 'application/json' },
   });
