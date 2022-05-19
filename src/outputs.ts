@@ -1,20 +1,32 @@
-import {  DirectomaticResponse, Locales, RedirectProps } from "."
+import { DirectomaticResponse, Locales, RedirectCode, RedirectProps } from "."
 import { makeFullURL } from "./processing";
 
+/**
+ * Key properties of the rule list itself.
+ */
 export interface BulkRedirectList {
   name: string;
   description: string;
   kind: 'redirect';
 }
 
+/**
+ * The Rules List API refers to an array of [{ redirect: theRedirectObj }, ...]
+ * entries, so this type is to confirm that structure.
+ */
 export interface BulkRedirectListItem {
   redirect: BulkRedirectListItemDetails;
 }
 
+/**
+ * The actual redirect rule formatted for the Rules List API. Source and dest
+ * must both be complete URLs and the status code must be one of the allowable
+ * HTTP 3xx response codes. Nothing else is stored at the row-level on Dash.
+ */
 export interface BulkRedirectListItemDetails {
   source_url: string;
   target_url: string;
-  status_code: number;
+  status_code: RedirectCode;
 }
 
 
