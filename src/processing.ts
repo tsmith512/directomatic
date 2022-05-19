@@ -15,7 +15,7 @@ export const processSheetRow = (input: RawRedirectProps): RedirectProps | null =
       deleted: validateBoolean(input.deleted, false),
     };
   } catch {
-    console.log(`Redirect from ${redirect?.source} to ${redirect?.destination} is invalid.`);
+    console.log(`Redirect from ${input?.source} to ${input?.destination} is invalid.`);
     return null;
   }
 

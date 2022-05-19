@@ -1,4 +1,29 @@
-import { RawRedirectProps } from '.';
+import { DirectomaticResponse, RawRedirectProps } from '.';
+
+const lookup = `${GSHEETS_API_ENDPOINT}/${GSHEETS_ID}/values/Redirects!A:E?key=${GSHEETS_API_KEY}&valueRenderOption=UNFORMATTED_VALUE`;
+
+/**
+ * Check that the Google Sheet in configuration is reachable and see if it has
+ * any rows in it already.
+ *
+ * @returns (Promise<DirectomaticResponse>) Status information
+ */
+export const checkSpreadsheetStatus = async(): Promise<DirectomaticResponse> => {
+  const response = await fetch(lookup);
+  const payload: any = await response.json();
+
+  const result: DirectomaticResponse = {
+    success: response.ok,
+    errors: response.ok ? [] : [`Google Sheet API returned ${response.status}, ${response.statusText}`],
+    messages: payload?.values?.length ?
+      [`Google Sheet contains ${payload.values.length} total rows.`] :
+      ['Google Sheet could not be queried or contains no rows.'],
+  };
+
+  result.messages?.push(`Google Sheet URL https://docs.google.com/spreadsheets/d/${GSHEETS_ID}/edit`);
+
+  return result;
+};
 
 /**
  * Look up the spreadsheet, pull all its rows, and return key:value objects of
@@ -7,8 +32,6 @@ import { RawRedirectProps } from '.';
  * @returns (Promise of RawRedirectProps[]) An array of raw redirect entries.
  */
 export const fetchRedirectRows = async (): Promise<RawRedirectProps[]> => {
-  const lookup = `${GSHEETS_API_ENDPOINT}/${GSHEETS_ID}/values/Redirects!A:E?key=${GSHEETS_API_KEY}&valueRenderOption=UNFORMATTED_VALUE`;
-
   return await fetch(lookup)
     .then((response) => response.json())
     .then((payload: any) => {

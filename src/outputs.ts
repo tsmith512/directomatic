@@ -71,6 +71,50 @@ export interface BulkUploadReport {
   });
 };
 
+/**
+ * Query the Cloudflare API about the Rules List to see if it is accessible and
+ * contains any rows already.
+ *
+ * @returns (Promise<DirectomaticResponse>) Status information
+ */
+export const getBulkListStatus = async (): Promise<DirectomaticResponse> => {
+  const response = await fetch(listApi, {
+    method: 'GET',
+    headers: {
+      'content-type': 'application/json',
+      'authorization': `Bearer ${CF_API_TOKEN}`,
+    }
+  });
+
+  const payload: any = await response.json();
+
+  const messages = [`Cloudflare Rules List URL https://dash.cloudflare.com/${CF_ACCT_ID}/configurations/lists/${CF_LIST_ID}`];
+
+  if (payload?.result) {
+    messages.push(`Cloudflare list ${payload.result?.name} contains ${payload.result?.num_items} rules.`);
+    messages.push(`Cloudflare list description: ${payload.result?.description}`);
+  }
+
+  const result: DirectomaticResponse = {
+    success: response.ok && payload.success,
+    errors: response.ok ? payload.errors :
+      [
+        `Cloudflare API returned ${response.status}, ${response.statusText}`,
+        payload.errors
+      ].flat(),
+    messages: [messages, payload.messages].flat(),
+  };
+
+  return result;
+}
+
+/**
+ * Given the new list of rules, PUT (completely replace) the destination list in
+ * the Cloudflare Rules List API.
+ *
+ * @param list (BulkRedirectListItem[]) The rules ready to upload
+ * @returns TBD -- API response from Cloudflare directly
+ */
 export const uploadBulkList = async (list: BulkRedirectListItem[]): Promise<DirectomaticResponse> => {
   const response: any = await fetch(listItemsApi, {
     method: 'PUT',
@@ -85,14 +129,19 @@ export const uploadBulkList = async (list: BulkRedirectListItem[]): Promise<Dire
     success: response?.success || false,
     errors: response?.errors || null,
     messages: response?.messages || null,
-    invalid_rules: [],
+    invalidRules: [],
   };
 
+  // Pick apart the response from Cloudflare to determine which of the Bulk Rules
+  // the API objected to. These won't match rows from the spreadsheet exactly.
   if (response?.errors?.length) {
-    report.invalid_rules = response.errors.map((e: any) => {
+    report.invalidRules = response.errors.map((e: any) => {
       return list[e.source.parameter_value_index];
     });
-  } else {
+  }
+
+  // No errors on upload, update the description with the name of this app + date
+  else {
     await fetch(listApi, {
       method: 'PUT',
       headers: {
