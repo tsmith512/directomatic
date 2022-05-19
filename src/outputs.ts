@@ -12,10 +12,13 @@ export interface BulkRedirectList {
 
 /**
  * The Rules List API refers to an array of [{ redirect: theRedirectObj }, ...]
- * entries, so this type is to confirm that structure.
+ * entries with some metadata we don't track but need to keep nested properly.
  */
 export interface BulkRedirectListItem {
+  id?: string;
   redirect: BulkRedirectListItemDetails;
+  created_on?: string;
+  modified_on?: string;
 }
 
 /**
@@ -183,15 +186,7 @@ export const getBulkListContents = async (): Promise<BulkRedirectListItem[]> => 
   const payload: any = await response.json();
 
   if (payload?.success && payload?.result?.length) {
-    return payload.result.map((row: any): BulkRedirectListItem => {
-      return {
-        redirect: {
-          source_url: row.redirect.source_url,
-          target_url: row.redirect.target_url,
-          status_code: row.redirect.status_code,
-        },
-      };
-    });
+    return payload.result as BulkRedirectListItem[];
   }
 
   return [];
