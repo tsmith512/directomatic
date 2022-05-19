@@ -5,6 +5,7 @@ declare global {
   const DEFAULT_DEST_DOMAIN: string;
 
   // In secrets
+  const AUTH_TOKEN: string;
   const GSHEETS_ID: string;
   const GSHEETS_API_KEY: string;
   const CF_ACCT_ID: string; // Really, account TAG
@@ -18,6 +19,7 @@ import { checkSpreadsheetStatus, fetchRedirectRows } from './inputs';
 import { processSheetRow } from './processing';
 import { BulkRedirectListItem, getBulkListStatus, makeBulkList, uploadBulkList } from './outputs';
 import { validateBoolean } from './validators';
+import { authCheck } from './auth';
 
 export type RedirectCode = 301 | 302 | 307 | 308;
 
@@ -58,6 +60,9 @@ export interface DirectomaticResponse {
 export const Locales = ['en-us', 'de-de', 'es-es'];
 
 const router = Router();
+
+// Require a bearer token for any request.
+router.all('*', authCheck);
 
 /**
  * GET /
