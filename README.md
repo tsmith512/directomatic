@@ -23,6 +23,7 @@ Or you're a badass who can `cURL` everything.
 - Create a Google Sheet
   - See [the sample](./docs/spreadsheet-template.csv) for column headers
   - Only columns A through E are required
+  - _The tab must be called "Redirects"_
 - Set the sharing options for the spreadsheet to "Anyone with the link can View"
 - Provision a Google Sheets API token to read from it _(details below)_
 - Create a Cloudflare Rules List of type "redirect" _(details below)_
@@ -43,14 +44,18 @@ Or you're a badass who can `cURL` everything.
     - **You will definitely need to edit this.**
     - @TODO: So store elsewhere?
   - @TODO: Locales are hard-coded but should be configurable.
-- Deploy Directomatic to Workers or use `wrangler dev` to run it locally.
+- Deploy Directomatic to Workers with `wrangler publish` or use `wrangler dev`
+  to run it locally.
   - Either way, use the Bearer token to authenticate all requests to it.
 - Request `/status` to confirm that both API integrations are properly running.
 
 ### Google Sheets Setup
 
-- Visit https://console.cloud.google.com/apis/credentials
+- Visit https://console.cloud.google.com/apis/dashboard
 - You will need to create a project and potentially a billing account (this project is well within free-tier)
+- Use "Enable APIs and Services"
+- Search for and enable "Google Sheets API"
+- Then open "Credentials" or visit https://console.cloud.google.com/apis/credentials
 - Use "Create Credentials" to create "API Key"
 - Edit that API key to restrict it to the "Google Sheets API" only.
 - Copy that API key and use `wrangler secret save GSHEETS_API_KEY`
@@ -102,3 +107,8 @@ Or you're a badass who can `cURL` everything.
 - The spreadsheet must be set to "Anyone with the link can View"
 - The app will not enable/disable the List as a Bulk Redirect list, only update
 - There's no frontend
+
+### Troubleshooting
+
+- If Google Sheets returns a `400` error, make sure the tab with the redirects
+  list is called "Redirects" and that the spreadsheet is publicly readable.
