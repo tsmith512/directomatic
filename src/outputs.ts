@@ -149,8 +149,8 @@ export const uploadBulkList = async (
 
   const report: DirectomaticResponse = {
     success: response?.success || false,
-    errors: response?.errors || null,
-    messages: response?.messages || null,
+    errors: response?.errors || [],
+    messages: response?.messages || [],
     invalidRules: [],
   };
 
@@ -164,6 +164,10 @@ export const uploadBulkList = async (
 
   // No errors on upload, update the description with the name of this app + date
   else {
+    report.messages?.push(
+      `Cloudflare API provided operation ID ${response.result.operation_id}`
+    );
+
     await fetch(listApi, {
       method: 'PUT',
       headers: {
