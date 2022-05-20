@@ -100,12 +100,14 @@ Or you're a badass who can `cURL` everything.
 - Use `/list` to read and validate rules from the spreadsheet.
 - Use `/diff` to compare processed rules from the spreadsheet with the published
   rules on the Rules List API to see what would be added or removed.
+  - _There's a bug with this endpoint. Directomatic doesn't support the paginated responses, but I can only fetch the first page in testing anyway._
 - Use `/publish` to process the spreadsheet into rules and _replace_ the List on
   Cloudflare.
 - If you haven't already, ["create a Bulk Redirect rule to enable the redirects in the list"](https://developers.cloudflare.com/rules/bulk-redirects/create-dashboard/#3-create-a-bulk-redirect-rule-to-enable-the-redirects-in-the-list) in the Cloudflare Dashboard.
 
 ## Known Limitations
 
+- Uhhh this may not scale super awesomely with long lists or lots of locales...
 - The spreadsheet must be set to "Anyone with the link can View"
 - The app will not enable/disable the List as a Bulk Redirect list, only update
 - There's no frontend
