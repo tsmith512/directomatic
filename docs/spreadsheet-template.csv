@@ -1,0 +1,4 @@
+source: Path to redirect FROM,destination: Path to redirect TO,"code: HTTP Status Code to Use (301, 302, 307, 308)",localized: Handle Locale Prefixes? (Y/N),deleted: Expired or deleted? (Y/N),author: Who wanted it? (Text),date: When? (YYYY-MM-DD),reason: Why? (Text)
+/old-page/,/new-page/,301,Y,N,Ted Crisp,"Feb 1, 2022",Demo
+/external-redirect/,http://www.example.com,301,N,N,Linda Zwordling,,Demo
+/temporary-redirect,/under-construction,302,Y,N,Veronica Palmer,,Demo
