@@ -1,5 +1,5 @@
-import { DirectomaticResponse, Locales, RedirectCode, RedirectProps } from "."
-import { makeFullURL } from "./processing";
+import { DirectomaticResponse, Locales, RedirectCode, RedirectProps } from '.';
+import { makeFullURL } from './processing';
 
 /**
  * Key properties of the rule list itself.
@@ -32,7 +32,6 @@ export interface BulkRedirectListItemDetails {
   status_code: RedirectCode;
 }
 
-
 // For the list metadata
 const listApi = `${CF_API_ENDPOINT}/accounts/${CF_ACCT_ID}/rules/lists/${CF_LIST_ID}`;
 
@@ -47,7 +46,6 @@ export interface BulkUploadReport {
   invalid_rules: BulkRedirectListItem[];
 }
 
-
 /**
  * Take the list of redirect rows, add the destination domain, make an item for
  * each locale, and return them as objects ready for Dash.
@@ -55,13 +53,15 @@ export interface BulkUploadReport {
  * @param input (RedirectProps[]) A clean list of redirect entries
  * @returns (BulkRedirectListItem[]) Raw redirect list entries for a CF Bulk Redirect List
  */
- export const makeBulkList = (input: RedirectProps[]): BulkRedirectListItem[] => {
-  return input.flatMap(row => {
-    const list = [{
-      source_url: makeFullURL(row.source),
-      target_url: makeFullURL(row.destination),
-      status_code: row.code,
-    }];
+export const makeBulkList = (input: RedirectProps[]): BulkRedirectListItem[] => {
+  return input.flatMap((row) => {
+    const list = [
+      {
+        source_url: makeFullURL(row.source),
+        target_url: makeFullURL(row.destination),
+        status_code: row.code,
+      },
+    ];
 
     // Add in locale-prefixed paths for localized redirects.
     if (row.localized) {
@@ -82,7 +82,7 @@ export interface BulkUploadReport {
 
     // Per https://developers.cloudflare.com/rules/bulk-redirects/create-api/
     // the actual stucture isn't an array of rules, it's an array of { redirect: rule }
-    return list.map(row => ({ redirect: row }));
+    return list.map((row) => ({ redirect: row }));
   });
 };
 
@@ -98,30 +98,35 @@ export const getBulkListStatus = async (): Promise<DirectomaticResponse> => {
     headers: {
       'content-type': 'application/json',
       'authorization': `Bearer ${CF_API_TOKEN}`,
-    }
+    },
   });
 
   const payload: any = await response.json();
 
-  const messages = [`Cloudflare Rules List URL https://dash.cloudflare.com/${CF_ACCT_ID}/configurations/lists/${CF_LIST_ID}`];
+  const messages = [
+    `Cloudflare Rules List URL https://dash.cloudflare.com/${CF_ACCT_ID}/configurations/lists/${CF_LIST_ID}`,
+  ];
 
   if (payload?.result) {
-    messages.push(`Cloudflare list ${payload.result?.name} contains ${payload.result?.num_items} rules.`);
+    messages.push(
+      `Cloudflare list ${payload.result?.name} contains ${payload.result?.num_items} rules.`
+    );
     messages.push(`Cloudflare list description: ${payload.result?.description}`);
   }
 
   const result: DirectomaticResponse = {
     success: response.ok && payload.success,
-    errors: response.ok ? payload.errors :
-      [
-        `Cloudflare API returned ${response.status}, ${response.statusText}`,
-        payload.errors
-      ].flat(),
+    errors: response.ok
+      ? payload.errors
+      : [
+          `Cloudflare API returned ${response.status}, ${response.statusText}`,
+          payload.errors,
+        ].flat(),
     messages: [messages, payload.messages].flat(),
   };
 
   return result;
-}
+};
 
 /**
  * Given the new list of rules, PUT (completely replace) the destination list in
@@ -130,7 +135,9 @@ export const getBulkListStatus = async (): Promise<DirectomaticResponse> => {
  * @param list (BulkRedirectListItem[]) The rules ready to upload
  * @returns TBD -- API response from Cloudflare directly
  */
-export const uploadBulkList = async (list: BulkRedirectListItem[]): Promise<DirectomaticResponse> => {
+export const uploadBulkList = async (
+  list: BulkRedirectListItem[]
+): Promise<DirectomaticResponse> => {
   const response: any = await fetch(listItemsApi, {
     method: 'PUT',
     headers: {
@@ -138,7 +145,7 @@ export const uploadBulkList = async (list: BulkRedirectListItem[]): Promise<Dire
       'authorization': `Bearer ${CF_API_TOKEN}`,
     },
     body: JSON.stringify(list),
-  }).then(res => res.json());
+  }).then((res) => res.json());
 
   const report: DirectomaticResponse = {
     success: response?.success || false,
@@ -163,7 +170,7 @@ export const uploadBulkList = async (list: BulkRedirectListItem[]): Promise<Dire
         'content-type': 'application/json',
         'authorization': `Bearer ${CF_API_TOKEN}`,
       },
-      body: JSON.stringify({ description: `Updated by Directomatic on ${Date()}`}),
+      body: JSON.stringify({ description: `Updated by Directomatic on ${Date()}` }),
     });
   }
 
@@ -179,8 +186,8 @@ export const getBulkListContents = async (): Promise<BulkRedirectListItem[]> => 
   const response = await fetch(listItemsApi, {
     method: 'GET',
     headers: {
-      'authorization': `Bearer ${CF_API_TOKEN}`,
-    }
+      authorization: `Bearer ${CF_API_TOKEN}`,
+    },
   });
 
   const payload: any = await response.json();
@@ -190,4 +197,4 @@ export const getBulkListContents = async (): Promise<BulkRedirectListItem[]> => 
   }
 
   return [];
-}
+};

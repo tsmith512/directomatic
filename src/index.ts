@@ -17,7 +17,13 @@ import { Router } from 'itty-router';
 
 import { checkSpreadsheetStatus, fetchRedirectRows } from './inputs';
 import { processSheetRow, ruleInList } from './processing';
-import { BulkRedirectListItem, getBulkListContents, getBulkListStatus, makeBulkList, uploadBulkList } from './outputs';
+import {
+  BulkRedirectListItem,
+  getBulkListContents,
+  getBulkListStatus,
+  makeBulkList,
+  uploadBulkList,
+} from './outputs';
 import { validateBoolean } from './validators';
 import { authCheck } from './auth';
 
@@ -56,7 +62,7 @@ export interface DirectomaticResponse {
   invalidRules?: BulkRedirectListItem[] | RawRedirectProps[];
 }
 
-// @TODO: This is not complete; just for initial dev.
+// @TODO: This is not complete; just for initial dev. Also move to env var?
 export const Locales = ['en-us', 'de-de', 'es-es'];
 
 const router = Router();
@@ -70,7 +76,7 @@ router.all('*', authCheck);
  * Hello World!
  */
 router.get('/', () => {
-  return new Response(JSON.stringify({ messages: ['Directomatic says hello.']}), {
+  return new Response(JSON.stringify({ messages: ['Directomatic says hello.'] }), {
     headers: { 'content-type': 'application/json' },
   });
 });
@@ -83,13 +89,17 @@ router.get('/', () => {
 router.get('/status', async () => {
   const sheet = await checkSpreadsheetStatus();
   const cflist = await getBulkListStatus();
-  return new Response(JSON.stringify({
-    success: sheet.success && cflist.success,
-    errors: [sheet.errors, cflist.errors].flat(),
-    messages: [sheet.messages, cflist.messages].flat(),
-  }), {
-    headers: { 'content-type': 'application/json' },
-  });
+
+  return new Response(
+    JSON.stringify({
+      success: sheet.success && cflist.success,
+      errors: [sheet.errors, cflist.errors].flat(),
+      messages: [sheet.messages, cflist.messages].flat(),
+    }),
+    {
+      headers: { 'content-type': 'application/json' },
+    }
+  );
 });
 
 /**
@@ -109,26 +119,29 @@ router.get('/list', async () => {
     if (output) {
       return output;
     } else {
-      // If the row was skipped because it was deleted, don't include it in the
-      // error report output.
+      // If the row was skipped because it was _deleted_, don't include it in
+      // the error report output.
       if (!validateBoolean(row.deleted, false)) {
         badRows.push(row);
       }
 
-      // Return empty, which will :magic: away in flatMap().
+      // Return empty, which will :magic: away in flatMap() and won't be uploaded.
       return [];
     }
   });
 
-  return new Response(JSON.stringify({
-    messages: [
-      `Google sheet contains ${redirectsList.length} valid rules and ${badRows.length} rows with errors.`
-    ],
-    inputRows: redirectsList,
-    invalidRules: badRows,
-  }), {
-    headers: { 'content-type': 'application/json' },
-  });
+  return new Response(
+    JSON.stringify({
+      messages: [
+        `Google sheet contains ${redirectsList.length} valid rules and ${badRows.length} rows with errors.`,
+      ],
+      inputRows: redirectsList,
+      invalidRules: badRows,
+    }),
+    {
+      headers: { 'content-type': 'application/json' },
+    }
+  );
 });
 
 /**
@@ -153,25 +166,32 @@ router.get('/diff', async () => {
   const cloudflareList = await getBulkListContents();
 
   // We need to see what cloudflareList rules aren't in spreadsheetList
-  const removedRules = cloudflareList.filter(rule => {
+  const removedRules = cloudflareList.filter((rule) => {
     return !ruleInList(rule, spreadsheetList);
   });
 
   // We need to see what spreadsheetList rules aren't in cloudflareList
-  const addedRules = spreadsheetList.filter(rule => {
+  const addedRules = spreadsheetList.filter((rule) => {
     return !ruleInList(rule, cloudflareList);
   });
 
-  return new Response(JSON.stringify({
-    messages: [
-      [`There are ${addedRules.length} rules to add (in spreadsheet but not published).`],
-      [`There are ${removedRules.length} rules to remove (published but not in spreadsheet).`],
-      {addedRules},
-      {removedRules},
-    ],
-  }), {
-    headers: { 'content-type': 'application/json' },
-  });
+  return new Response(
+    JSON.stringify({
+      messages: [
+        [
+          `There are ${addedRules.length} rules to add (in spreadsheet but not published).`,
+        ],
+        [
+          `There are ${removedRules.length} rules to remove (published but not in spreadsheet).`,
+        ],
+        { addedRules },
+        { removedRules },
+      ],
+    }),
+    {
+      headers: { 'content-type': 'application/json' },
+    }
+  );
 });
 
 /**

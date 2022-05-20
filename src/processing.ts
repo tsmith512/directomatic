@@ -68,11 +68,14 @@ export const makeFullURL = (path: string, locale?: string): string => {
  * @param b (BulkRedirectListItem) A redirect item to test
  * @returns (boolean)
  */
-export const redirectCompare = (a: BulkRedirectListItem, b: BulkRedirectListItem): boolean => {
+export const redirectCompare = (
+  a: BulkRedirectListItem,
+  b: BulkRedirectListItem
+): boolean => {
   return (
-    (a.redirect.source_url === b.redirect.source_url) &&
-    (a.redirect.target_url === b.redirect.target_url) &&
-    (a.redirect.status_code === b.redirect.status_code)
+    a.redirect.source_url === b.redirect.source_url &&
+    a.redirect.target_url === b.redirect.target_url &&
+    a.redirect.status_code === b.redirect.status_code
   );
 };
 
@@ -83,8 +86,13 @@ export const redirectCompare = (a: BulkRedirectListItem, b: BulkRedirectListItem
  * @param haystack (BulkRedirectListItem[]) The list to find it in
  * @returns (boolean)
  */
-export const ruleInList = (needle: BulkRedirectListItem, haystack: BulkRedirectListItem[]): boolean => {
-  return haystack.findIndex(test => {
-    return redirectCompare(needle, test);
-  }) !== -1;
+export const ruleInList = (
+  needle: BulkRedirectListItem,
+  haystack: BulkRedirectListItem[]
+): boolean => {
+  return (
+    haystack.findIndex((test) => {
+      return redirectCompare(needle, test);
+    }) !== -1
+  );
 };

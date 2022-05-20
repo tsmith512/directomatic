@@ -8,19 +8,23 @@ const lookup = `${GSHEETS_API_ENDPOINT}/${GSHEETS_ID}/values/Redirects!A:E?key=$
  *
  * @returns (Promise<DirectomaticResponse>) Status information
  */
-export const checkSpreadsheetStatus = async(): Promise<DirectomaticResponse> => {
+export const checkSpreadsheetStatus = async (): Promise<DirectomaticResponse> => {
   const response = await fetch(lookup);
   const payload: any = await response.json();
 
   const result: DirectomaticResponse = {
     success: response.ok,
-    errors: response.ok ? [] : [`Google Sheet API returned ${response.status}, ${response.statusText}`],
-    messages: payload?.values?.length ?
-      [`Google Sheet contains ${payload.values.length} total rows.`] :
-      ['Google Sheet could not be queried or contains no rows.'],
+    errors: response.ok
+      ? []
+      : [`Google Sheet API returned ${response.status}, ${response.statusText}`],
+    messages: payload?.values?.length
+      ? [`Google Sheet contains ${payload.values.length} total rows.`]
+      : ['Google Sheet could not be queried or contains no rows.'],
   };
 
-  result.messages?.push(`Google Sheet URL https://docs.google.com/spreadsheets/d/${GSHEETS_ID}/edit`);
+  result.messages?.push(
+    `Google Sheet URL https://docs.google.com/spreadsheets/d/${GSHEETS_ID}/edit`
+  );
 
   return result;
 };

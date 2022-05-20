@@ -17,19 +17,23 @@ export const authCheck = (request: Request): undefined | Response => {
     const token = authHeader.split(' ').pop();
 
     if (token === AUTH_TOKEN) {
+      // Returning undefined causes itty-router to proceed to the next handler.
       return;
     }
   }
 
-  // Stop request processing by issuring a request.
-  return new Response(JSON.stringify({
-    success: false,
-    errors: ['Missing or invalid bearer token'],
-    messages: ['Authorization failure for Directomatic access'],
-  }), {
-    status: 401,
-    headers: {
-      'Content-Type': 'text/json',
-    },
-  });
+  // By default, stop request processing by returning a response.
+  return new Response(
+    JSON.stringify({
+      success: false,
+      errors: ['Missing or invalid bearer token'],
+      messages: ['Authorization failure for Directomatic access'],
+    }),
+    {
+      status: 401,
+      headers: {
+        'Content-Type': 'text/json',
+      },
+    }
+  );
 };
