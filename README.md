@@ -25,9 +25,9 @@ Or you're a badass who can `cURL` everything.
   - Only columns A through E are required
   - _The tab must be called "Redirects"_
 - Set the sharing options for the spreadsheet to "Anyone with the link can View"
-- Provision a Google Sheets API token to read from it _(details below)_
-- Create a Cloudflare Rules List of type "redirect" _(details below)_
-- Provision a Cloudflare API token (TBD) to write to it
+- Provision a Google Sheets API token to read from it \*
+- Create a Cloudflare Rules List _of type "redirect"_ \*
+- Provision a Cloudflare API token to write to it \*
 - Create a Directomatic Worker (whether you intend to run locally or not)
 - Make up a Bearer token you will use to authenticate your requests. Doesn't matter what it is.
 - Add the following _[Secrets](https://developers.cloudflare.com/workers/wrangler/commands/#secret)_ using Wrangler:
@@ -48,6 +48,8 @@ Or you're a badass who can `cURL` everything.
   to run it locally.
   - Either way, use the Bearer token to authenticate all requests to it.
 - Request `/status` to confirm that both API integrations are properly running.
+
+\* _Specifics below._
 
 ### Google Sheets Setup
 
@@ -111,4 +113,6 @@ Or you're a badass who can `cURL` everything.
 ### Troubleshooting
 
 - If Google Sheets returns a `400` error, make sure the tab with the redirects
-  list is called "Redirects" and that the spreadsheet is publicly readable.
+  list is called "Redirects" and that the spreadsheet is publicly readable.git
+- You may need to purge routes from CDN cache if the redirect does not take
+  immediate effect.
