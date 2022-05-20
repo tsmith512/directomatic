@@ -24,10 +24,11 @@ Or you're a badass who can `cURL` everything.
   - See [the sample](./docs/spreadsheet-template.csv) for column headers
   - Only columns A through E are required
 - Set the sharing options for the spreadsheet to "Anyone with the link can View"
-- Provision a Google Sheets API token to read from it
-- Create a Cloudflare Rules List of type "redirect"
+- Provision a Google Sheets API token to read from it _(details below)_
+- Create a Cloudflare Rules List of type "redirect" _(details below)_
 - Provision a Cloudflare API token (TBD) to write to it
 - Create a Directomatic Worker (whether you intend to run locally or not)
+- Make up a Bearer token you will use to authenticate your requests. Doesn't matter what it is.
 - Add the following _[Secrets](https://developers.cloudflare.com/workers/wrangler/commands/#secret)_ using Wrangler:
   - `AUTH_TOKEN` the Bearer token used to authenticate any Directomatic request
   - `GSHEETS_ID` the spreadsheet ID, which you can get from the URL
@@ -46,9 +47,49 @@ Or you're a badass who can `cURL` everything.
   - Either way, use the Bearer token to authenticate all requests to it.
 - Request `/status` to confirm that both API integrations are properly running.
 
+### Google Sheets Setup
+
+- Visit https://console.cloud.google.com/apis/credentials
+- You will need to create a project and potentially a billing account (this project is well within free-tier)
+- Use "Create Credentials" to create "API Key"
+- Edit that API key to restrict it to the "Google Sheets API" only.
+- Copy that API key and use `wrangler secret save GSHEETS_API_KEY`
+- Open the spreadsheet and grab its id from the URL: `https://docs.google.com/spreadsheets/d/THIS_PART_IS_THE_SPREADSHEET_ID/edit#gid=0`
+- Copy that ID and use `wrangler secret save GSHEETS_ID`
+
+### Cloudflare Setup
+
+**Create the List**
+
+- Log into https://dash.cloudflare.com
+- If you have access to multiple accounts, select the appropriate one
+- From the account overview screen, open "Manage Account" -> "Configurations"
+- Open the "Lists" tab and Create New List
+  - Set whatever "List name" you want.
+  - Direct-o-matic will set the description on successful upload.
+  - "Content type" _must be "Redirect."_
+- Grab your Account Tag (ID) and List ID from the URL of the edit page:
+  - `https://dash.cloudflare.com/ACCOUNT_ID_HERE/configurations/lists/LIST_ID_HERE/add`
+  - Save the account tag with `wrangler secret save CF_ACCT_ID`
+  - Save the list ID with `wrangler secret save CF_LIST_ID`
+
+**Provision the API Key**
+
+- Navigate to https://dash.cloudflare.com/profile
+- Open "API Tokens" and "Create Token"
+- Look for "Create Custom Token" -> "Get Started"
+- Under Permissions, add these two:
+  - Account -> Bulk URL Redirects -> Edit
+  - Account -> Account Filter Lists -> Edit
+- If you login has access to multiple accounts, it's a good idea to restrict
+  this key to a specific account under "Account Resources."
+- The key will only be displayed once when it is created!
+- Copy the key and save with `wrangler secret save CF_API_TOKEN`
+
 ## Usage
 
 - Populate the spreadsheet with the necessary paths.
+- Use `/status` to confirm both integrations are working.
 - Use `/list` to read and validate rules from the spreadsheet.
 - Use `/diff` to compare processed rules from the spreadsheet with the published
   rules on the Rules List API to see what would be added or removed.
