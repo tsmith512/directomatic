@@ -158,7 +158,12 @@ export const uploadBulkList = async (
   // the API objected to. These won't match rows from the spreadsheet exactly.
   if (response?.errors?.length) {
     report.invalidRules = response.errors.map((e: any) => {
-      return list[e.source.parameter_value_index];
+      // @TODO: This may not work once hostnames are applied?
+      // WIP: I was getting exceptions on this line beause the API was giving me
+      // back a ratelimiting error, not an error about a particular rule. Need to
+      // actually pick apart responses, but in the meantime, just shove the
+      // API errir into the response and I'll read it in the output. :puke:
+      return list[e?.source?.parameter_value_index] || e;
     });
   }
 
