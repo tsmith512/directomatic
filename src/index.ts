@@ -1,10 +1,7 @@
 declare global {
-  // In wrangler.toml
   const GSHEETS_API_ENDPOINT: string;
   const CF_API_ENDPOINT: string;
   const DEFAULT_DEST_DOMAIN: string;
-
-  // In secrets
   const AUTH_TOKEN: string;
   const GSHEETS_ID: string;
   const GSHEETS_API_KEY: string;
@@ -12,8 +9,6 @@ declare global {
   const CF_LIST_ID: string;
   const CF_API_TOKEN: string;
 }
-
-import { Router } from 'itty-router';
 
 import { checkSpreadsheetStatus, fetchRedirectRows } from './inputs';
 import { processSheetRow, ruleInList } from './processing';
@@ -25,7 +20,6 @@ import {
   uploadBulkList,
 } from './outputs';
 import { validateBoolean } from './validators';
-import { authCheck } from './auth';
 
 export type RedirectCode = 301 | 302 | 307 | 308;
 
@@ -88,21 +82,8 @@ export const Locales = [
   'zh-tw',
 ];
 
-const router = Router();
+// @TODO: VALIDATE ENV
 
-// Require a bearer token for any request.
-router.all('*', authCheck);
-
-/**
- * GET /
- *
- * Hello World!
- */
-router.get('/', () => {
-  return new Response(JSON.stringify({ messages: ['Directomatic says hello.'] }), {
-    headers: { 'content-type': 'application/json' },
-  });
-});
 
 /**
  * GET /status
@@ -160,6 +141,7 @@ router.get('/list', async () => {
       ],
       inputRows: redirectsList,
       invalidRules: badRows,
+      duplicateRules: duplicates,
     }),
     {
       headers: { 'content-type': 'application/json' },
