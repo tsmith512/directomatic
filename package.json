@@ -2,13 +2,11 @@
   "name": "directomatic",
   "version": "1.0.0",
   "description": "Redirect Generator and Transformer Robot",
-  "main": "dist/worker.js",
   "scripts": {
-    "build": "webpack",
     "format": "prettier --write  '*.{json,js}' 'src/**/*.{js,ts}' 'test/**/*.{js,ts}'",
     "lint": "eslint --max-warnings=0 src && prettier --check '*.{json,js}' 'src/**/*.{js,ts}' 'test/**/*.{js,ts}'",
     "prettier": "prettier --write '*.{json,js}' 'src/**/*.{js,ts}' 'test/**/*.{js,ts}'",
-    "test": "jest --config jestconfig.json --npmverbose"
+    "task": "ts-node-esm src/index.ts"
   },
   "author": "Taylor Smith <tsmith@cloudflare.com>",
   "license": "Internal Use Only",
@@ -20,8 +18,8 @@
     ]
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^3.0.0",
     "@types/jest": "^26.0.23",
+    "@types/node": "^18.11.18",
     "@types/service-worker-mock": "^2.0.1",
     "@typescript-eslint/eslint-plugin": "^4.16.1",
     "@typescript-eslint/parser": "^4.16.1",
@@ -38,6 +36,10 @@
     "webpack-cli": "^4.7.0"
   },
   "dependencies": {
-    "itty-router": "^2.6.1"
-  }
+    "chalk": "^5.2.0",
+    "dotenv": "^16.0.3",
+    "nodemon": "^2.0.20",
+    "ts-node": "^10.9.1"
+  },
+  "type": "module"
 }
