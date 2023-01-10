@@ -1,6 +1,6 @@
 import { DirectomaticResponse, RawRedirectProps } from '.';
 
-const lookup = `${GSHEETS_API_ENDPOINT}/${GSHEETS_ID}/values/Redirects!A:E?key=${GSHEETS_API_KEY}&valueRenderOption=UNFORMATTED_VALUE`;
+const lookup = `${process.env.GSHEETS_API_ENDPOINT}/${process.env.GSHEETS_ID}/values/Redirects!A:E?key=${process.env.GSHEETS_API_KEY}&valueRenderOption=UNFORMATTED_VALUE`;
 
 /**
  * Check that the Google Sheet in configuration is reachable and see if it has
@@ -23,7 +23,7 @@ export const checkSpreadsheetStatus = async (): Promise<DirectomaticResponse> =>
   };
 
   result.messages?.push(
-    `Google Sheet URL https://docs.google.com/spreadsheets/d/${GSHEETS_ID}/edit`
+    `Google Sheet URL https://docs.google.com/spreadsheets/d/${process.env.GSHEETS_ID}/edit`
   );
 
   return result;

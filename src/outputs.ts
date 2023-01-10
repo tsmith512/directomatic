@@ -33,10 +33,10 @@ export interface BulkRedirectListItemDetails {
 }
 
 // For the list metadata
-const listApi = `${CF_API_ENDPOINT}/accounts/${CF_ACCT_ID}/rules/lists/${CF_LIST_ID}`;
+const listApi = `${process.env.CF_API_ENDPOINT}/accounts/${process.env.CF_ACCT_ID}/rules/lists/${process.env.CF_LIST_ID}`;
 
 // To the redirects contained in that list
-const listItemsApi = `${CF_API_ENDPOINT}/accounts/${CF_ACCT_ID}/rules/lists/${CF_LIST_ID}/items`;
+const listItemsApi = `${process.env.CF_API_ENDPOINT}/accounts/${process.env.CF_ACCT_ID}/rules/lists/${process.env.CF_LIST_ID}/items`;
 
 export interface BulkUploadReport {
   success: boolean;
@@ -97,14 +97,14 @@ export const getBulkListStatus = async (): Promise<DirectomaticResponse> => {
     method: 'GET',
     headers: {
       'content-type': 'application/json',
-      'authorization': `Bearer ${CF_API_TOKEN}`,
+      'authorization': `Bearer ${process.env.CF_API_TOKEN}`,
     },
   });
 
   const payload: any = await response.json();
 
   const messages = [
-    `Cloudflare Rules List URL https://dash.cloudflare.com/${CF_ACCT_ID}/configurations/lists/${CF_LIST_ID}`,
+    `Cloudflare Rules List URL https://dash.cloudflare.com/${process.env.CF_ACCT_ID}/configurations/lists/${process.env.CF_LIST_ID}`,
   ];
 
   if (payload?.result) {
@@ -142,7 +142,7 @@ export const uploadBulkList = async (
     method: 'PUT',
     headers: {
       'content-type': 'application/json',
-      'authorization': `Bearer ${CF_API_TOKEN}`,
+      'authorization': `Bearer ${process.env.CF_API_TOKEN}`,
     },
     body: JSON.stringify(list),
   }).then((res) => res.json());
@@ -177,7 +177,7 @@ export const uploadBulkList = async (
       method: 'PUT',
       headers: {
         'content-type': 'application/json',
-        'authorization': `Bearer ${CF_API_TOKEN}`,
+        'authorization': `Bearer ${process.env.CF_API_TOKEN}`,
       },
       body: JSON.stringify({ description: `Updated by Directomatic on ${Date()}` }),
     });
