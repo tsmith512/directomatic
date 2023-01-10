@@ -195,7 +195,7 @@ export const getBulkListContents = async (): Promise<BulkRedirectListItem[]> => 
   const response = await fetch(listItemsApi, {
     method: 'GET',
     headers: {
-      authorization: `Bearer ${CF_API_TOKEN}`,
+      authorization: `Bearer ${process.env.CF_API_TOKEN}`,
     },
   });
 

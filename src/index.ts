@@ -23,7 +23,6 @@ import {
   // uploadBulkList,
 } from './outputs';
 import { validateBoolean } from './validators';
-import { stat } from 'fs';
 
 export type RedirectCode = 301 | 302 | 307 | 308;
 
@@ -91,7 +90,6 @@ const arg = process.argv[2] || false;
 // @TODO: VALIDATE ENV
 console.log(chalk.blue("Checking environment..."));
 
-
 /**
  * GET /status
  *
@@ -101,16 +99,12 @@ const status = async () => {
   const sheet = await checkSpreadsheetStatus();
   const cflist = await getBulkListStatus();
 
-  console.log(
-    JSON.stringify({
-      success: sheet.success && cflist.success,
-      errors: [sheet.errors, cflist.errors].flat(),
-      messages: [sheet.messages, cflist.messages].flat(),
-    })
-  );
-}
-if (arg === 'status') {
-  status();
+  const success = sheet.success && cflist.success;
+  const color = success ? chalk.green : chalk.red;
+
+  console.log(`Success? ${color(success)}`);
+  console.log(`${chalk.blue("Errors:")} ${["\t", sheet.errors, cflist.errors].flat().join("\n\t")}`);
+  console.log(`${chalk.blue("Messages:")} ${["\t", sheet.messages, cflist.messages].flat().join("\n\t")}`);
 }
 
 /**
@@ -184,20 +178,20 @@ const diff = async () => {
     return !ruleInList(rule, cloudflareList);
   });
 
-  console.log(
-    JSON.stringify({
-      messages: [
-        [
-          `There are ${addedRules.length} rules to add (in spreadsheet but not published).`,
-        ],
-        [
-          `There are ${removedRules.length} rules to remove (published but not in spreadsheet).`,
-        ],
-        { addedRules },
-        { removedRules },
-      ],
-    })
-  );
+  const messages = [
+    [
+      `There are ${addedRules.length} rules to add (in spreadsheet but not published).`,
+    ],
+    [
+      `There are ${removedRules.length} rules to remove (published but not in spreadsheet).`,
+    ],
+  ];
+
+  console.log(`${chalk.blue("Messages:")} ${["\t", ...messages].join("\n\t")}`);
+
+  // @TODO: What is a useful way to actually dump these?
+  console.log(`${chalk.blue("To Add:")} (these are only in the spreadshet) ${["\t", ...addedRules.map(r => (`${r.redirect.source_url} --> ${r.redirect.target_url}`))].join("\n\t")}`);
+  console.log(`${chalk.blue("To Remove:")} (these are only in Dash) ${["\t", ...removedRules.map(r => (`${r.redirect.source_url} --> ${r.redirect.target_url}`))].join("\n\t")}`);
 };
 
 /**
@@ -228,5 +222,8 @@ const publish = async () => {
 switch (arg) {
   case "status":
     status();
-
+    break;
+  case "diff":
+    diff();
+    break;
 }

@@ -55,7 +55,7 @@ export const processSheetRow = (input: RawRedirectProps): RedirectProps | null =
  */
 export const makeFullURL = (path: string, locale?: string): string => {
   if (path.indexOf('/') === 0) {
-    return DEFAULT_DEST_DOMAIN + (locale ? `/${locale}` : '') + path;
+    return process.env.DEFAULT_DEST_DOMAIN + (locale ? `/${locale}` : '') + path;
   }
 
   return path;
