@@ -1,3 +1,5 @@
+import chalk from 'chalk';
+
 import { DirectomaticResponse, Locales, RedirectCode, RedirectProps } from '.';
 import { makeFullURL } from './processing';
 
@@ -37,6 +39,9 @@ const listApi = `${process.env.CF_API_ENDPOINT}/accounts/${process.env.CF_ACCT_I
 
 // To the redirects contained in that list
 const listItemsApi = `${process.env.CF_API_ENDPOINT}/accounts/${process.env.CF_ACCT_ID}/rules/lists/${process.env.CF_LIST_ID}/items`;
+
+// For bulk operations API (you'll still need to append the operation ID)
+const bulkOpsApi = `${process.env.CF_API_ENDPOINT}/accounts/${process.env.CF_ACCT_ID}/rules/lists/bulk_operations`;
 
 export interface BulkUploadReport {
   success: boolean;
@@ -144,9 +149,9 @@ export const uploadBulkList = async (
       'content-type': 'application/json',
       'authorization': `Bearer ${process.env.CF_API_TOKEN}`,
     },
-    body: JSON.stringify(list),
+    body: JSON.stringify(list.slice(0, 500)),
   }).then((res) => res.json());
-
+console.log(response);
   const report: DirectomaticResponse = {
     success: response?.success || false,
     errors: response?.errors || [],
@@ -172,6 +177,8 @@ export const uploadBulkList = async (
     report.messages?.push(
       `Cloudflare API provided operation ID ${response.result.operation_id}`
     );
+
+    report.bulkOperationsId = response.result.operation_id;
 
     await fetch(listApi, {
       method: 'PUT',
@@ -207,3 +214,37 @@ export const getBulkListContents = async (): Promise<BulkRedirectListItem[]> => 
 
   return [];
 };
+
+/**
+ * Query the Bulk Operations API to check status
+ */
+export const getBulkOpsStatus = async (id: string): Promise<boolean> => {
+  return fetch(`${bulkOpsApi}/${id}`, {
+    method: 'GET',
+    headers: {
+      authorization: `Bearer ${process.env.CF_API_TOKEN}`,
+    },
+  })
+  .then(res => res.json())
+  .then(async (payload) => {
+    console.log(payload);
+
+    if (payload.result.status === "completed") {
+      console.log(chalk.green("Bulk Operation completed."))
+      return true;
+    } else if (payload.result.status === "failed") {
+      console.log(chalk.red("Bulk Operation failed:"));
+      console.log(payload.error);
+      return false;
+    }
+
+    // @TODO: It's pending or in progress... need to wait.
+    await new Promise(r => setTimeout(r, 5000));
+    return await getBulkOpsStatus(id);
+  })
+  .catch(err => {
+    console.log(chalk.red("Checking for bulk operations status failed."));
+    console.log(err);
+    return false;
+  })
+}

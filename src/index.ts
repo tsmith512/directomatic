@@ -19,7 +19,9 @@ import {
   BulkRedirectListItem,
   getBulkListContents,
   getBulkListStatus,
+  getBulkOpsStatus,
   makeBulkList,
+  uploadBulkList,
   // uploadBulkList,
 } from './outputs';
 import { validateBoolean } from './validators';
@@ -50,6 +52,8 @@ export interface RawRedirectProps {
 
 /**
  * Work-in-progress, but all responses from this service will be one of these.
+ * @TODO: Now that this is a CLI, not a Worker, this is ... not necessary. But
+ * cleaning up how I print reports would be a good idea.
  */
 export interface DirectomaticResponse {
   success?: boolean; // If an action was requested
@@ -57,6 +61,7 @@ export interface DirectomaticResponse {
   messages?: any[]; // This would be from the CF API
   inputRules?: RedirectProps[];
   invalidRules?: BulkRedirectListItem[] | RawRedirectProps[];
+  bulkOperationsId?: string; // The bulk operation assigned, if any
 }
 
 // @TODO: Full listing for cf.com but this should be configurable. Move to env var?
@@ -215,9 +220,21 @@ const publish = async () => {
   const bulkList = makeBulkList(redirectsList);
 
   // Send the processed list to CF
-  // const uploadResponse = await uploadBulkList(bulkList);
+  const uploadResponse = await uploadBulkList(bulkList);
 
-  console.log(JSON.stringify(bulkList));
+  const color = uploadResponse.success ? chalk.green : chalk.red;
+  console.log(`Success? ${color(uploadResponse.success)}`);
+
+  console.log(`${chalk.red("Errors:")}`);
+  console.log(JSON.stringify(uploadResponse.errors, null, 2));
+  console.log(`${chalk.blue("Messages:")}`);
+  console.log(JSON.stringify(uploadResponse.messages, null, 2));
+  console.log(`${chalk.red("Invalid Rules:")} (usually duplicates) ${["\t", uploadResponse.invalidRules].flat().join("\n\t")}`);
+
+  if (uploadResponse.bulkOperationsId) {
+    console.log(`${chalk.gray("Awaiting confirmation on bulk operation.")}`)
+    await getBulkOpsStatus(uploadResponse.bulkOperationsId);
+  }
 };
 
 switch (arg) {
@@ -229,5 +246,8 @@ switch (arg) {
     break;
   case "diff":
     diff();
+    break;
+  case "publish":
+    publish();
     break;
 }
