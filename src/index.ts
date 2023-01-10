@@ -103,7 +103,7 @@ const status = async () => {
   const color = success ? chalk.green : chalk.red;
 
   console.log(`Success? ${color(success)}`);
-  console.log(`${chalk.blue("Errors:")} ${["\t", sheet.errors, cflist.errors].flat().join("\n\t")}`);
+  console.log(`${chalk.red("Errors:")} ${["\t", sheet.errors, cflist.errors].flat().join("\n\t")}`);
   console.log(`${chalk.blue("Messages:")} ${["\t", sheet.messages, cflist.messages].flat().join("\n\t")}`);
 }
 
@@ -135,16 +135,17 @@ const list = async () => {
     }
   });
 
-  console.log(
-    JSON.stringify({
-      messages: [
-        `Google sheet contains ${redirectsList.length} valid rules and ${badRows.length} rows with errors.`,
-      ],
-      inputRows: redirectsList,
-      invalidRules: badRows,
-      // duplicateRules: duplicates,
-    })
-  );
+  const color = badRows.length === 0 ? chalk.green : chalk.red;
+
+  const messages = [
+    `Google sheet contains ${redirectsList.length} valid rules and ${color(badRows.length)} rows with errors.`,
+  ];
+
+  console.log(`${chalk.blue("Messages:")} ${["\t", ...messages].join("\n\t")}`);
+
+  // @TODO: What is a useful way to actually dump these?
+  console.log(`${chalk.blue("Valid Rules:")} ${["\t", ...redirectsList.map(r => (`${r.source} --> ${r.destination}`))].join("\n\t")}`);
+  console.log(`${chalk.red("Invalid Rules:")} ${["\t", ...badRows.map(r => (`${r.source} --> ${r.destination}`))].join("\n\t")}`);
 };
 
 /**
@@ -222,6 +223,9 @@ const publish = async () => {
 switch (arg) {
   case "status":
     status();
+    break;
+  case "list":
+    list();
     break;
   case "diff":
     diff();
