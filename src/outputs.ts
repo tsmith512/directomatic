@@ -144,12 +144,12 @@ export const uploadBulkList = async (
   list: BulkRedirectListItem[]
 ): Promise<DirectomaticResponse> => {
   const response: any = await fetch(listItemsApi, {
-    method: 'PUT',
+    method: 'POST',
     headers: {
       'content-type': 'application/json',
       'authorization': `Bearer ${process.env.CF_API_TOKEN}`,
     },
-    body: JSON.stringify(list.slice(0, 500)),
+    body: JSON.stringify(list.slice(400, 700)),
   }).then((res) => res.json());
 console.log(response);
   const report: DirectomaticResponse = {
