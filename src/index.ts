@@ -106,13 +106,13 @@ const status = async () => {
   const success = sheet.success && cflist.success;
   const color = success ? chalk.green : chalk.red;
 
-  console.log(`${chalk.yellow("Success?")} ${color(success)}`);
-  console.log(`\n${chalk.red("## Errors:")}`)
-  console.log([sheet.errors, cflist.errors].flat().join("\n"));
+  console.log(`${chalk.yellow('Success?')} ${color(success)}`);
+  console.log(`\n${chalk.red('## Errors:')}`);
+  console.log([sheet.errors, cflist.errors].flat().join('\n'));
 
-  console.log(`\n${chalk.blue("## Messages:")}`);
-  console.log([sheet.messages, cflist.messages].flat().join("\n"));
-}
+  console.log(`\n${chalk.blue('## Messages:')}`);
+  console.log([sheet.messages, cflist.messages].flat().join('\n'));
+};
 
 /**
  * GET /list
@@ -145,17 +145,19 @@ const list = async () => {
   const color = badRows.length === 0 ? chalk.green : chalk.red;
 
   const messages = [
-    `Google sheet contains ${redirectsList.length} valid rules and ${color(badRows.length)} rows with errors.`,
+    `Google sheet contains ${redirectsList.length} valid rules and ${color(
+      badRows.length
+    )} rows with errors.`,
   ];
 
-  console.log(`\n${chalk.blue("## Messages:")}\n${messages.join("\n")}`);
+  console.log(`\n${chalk.blue('## Messages:')}\n${messages.join('\n')}`);
 
   // @TODO: What is a useful way to actually dump these?
-  console.log(`\n${chalk.blue("## Valid Rules:")} (total ${redirectsList.length})`);
-  console.log(redirectsList.map(r => (`${r.source} --> ${r.destination}`)).join("\n"));
+  console.log(`\n${chalk.blue('## Valid Rules:')} (total ${redirectsList.length})`);
+  console.log(redirectsList.map((r) => `${r.source} --> ${r.destination}`).join('\n'));
 
-  console.log(`\n${chalk.red("## Invalid Rules:")} (total ${badRows.length})`);
-  console.log(badRows.map(r => (`${r.source} --> ${r.destination}`)).join("\n"));
+  console.log(`\n${chalk.red('## Invalid Rules:')} (total ${badRows.length})`);
+  console.log(badRows.map((r) => `${r.source} --> ${r.destination}`).join('\n'));
 };
 
 /**
@@ -190,26 +192,32 @@ const diff = async () => {
   });
 
   const messages = [
-    [
-      `There are ${addedRules.length} rules to add (in spreadsheet but not published).`,
-    ],
+    [`There are ${addedRules.length} rules to add (in spreadsheet but not published).`],
     [
       `There are ${removedRules.length} rules to remove (published but not in spreadsheet).`,
     ],
   ];
 
-  console.log(`\n${chalk.blue("## Messages:")}`);
-  console.log(messages.join("\n"));
+  console.log(`\n${chalk.blue('## Messages:')}`);
+  console.log(messages.join('\n'));
 
   // @TODO: What is a useful way to actually dump these?
   if (addedRules.length) {
-    console.log(`${chalk.green("## To Add:")} (these are only in the spreadshet)`);
-    console.log(addedRules.map(r => (`${r.redirect.source_url} --> ${r.redirect.target_url}`)).join("\n"));
+    console.log(`${chalk.green('## To Add:')} (these are only in the spreadshet)`);
+    console.log(
+      addedRules
+        .map((r) => `${r.redirect.source_url} --> ${r.redirect.target_url}`)
+        .join('\n')
+    );
   }
 
   if (removedRules.length) {
-    console.log(`${chalk.red("## To Remove:")} (these are only in Dash)`);
-    console.log(removedRules.map(r => (`${r.redirect.source_url} --> ${r.redirect.target_url}`)).join("\n"));
+    console.log(`${chalk.red('## To Remove:')} (these are only in Dash)`);
+    console.log(
+      removedRules
+        .map((r) => `${r.redirect.source_url} --> ${r.redirect.target_url}`)
+        .join('\n')
+    );
   }
 };
 
@@ -237,7 +245,11 @@ const publish = async () => {
   console.log('Truncating the existing list...');
   await emptyBulkList();
 
-  console.log(`Uploading ${bulkList.length} redirects in ${Math.ceil(bulkList.length / 1000)} batches`);
+  console.log(
+    `Uploading ${bulkList.length} redirects in ${Math.ceil(
+      bulkList.length / 1000
+    )} batches`
+  );
 
   // If you POST too many redirects at once, you'll get a rate limiting response
   // so chunk the list in batches of 1000 and post one at a time.
@@ -250,14 +262,17 @@ const publish = async () => {
     const success = await uploadBatch(i, bulkList.slice(n, n + batch));
     const color = success ? chalk.green : chalk.red;
 
-    console.log(color(`Batch ${i}: ${success ? "complete" : "failed"}`));
+    console.log(color(`Batch ${i}: ${success ? 'complete' : 'failed'}`));
   }
 };
 
 /**
  * Upload a set of redirects and report on (and await) the results.
  */
-const uploadBatch = async (i: number, batchList: BulkRedirectListItem[]): Promise<boolean> => {
+const uploadBatch = async (
+  i: number,
+  batchList: BulkRedirectListItem[]
+): Promise<boolean> => {
   // Send the processed list to CF
   const uploadResponse = await uploadBulkList(batchList);
 
@@ -265,27 +280,27 @@ const uploadBatch = async (i: number, batchList: BulkRedirectListItem[]): Promis
   console.log(`Success? ${color(uploadResponse.success)}`);
 
   if (uploadResponse.errors?.length) {
-    console.log(`${chalk.red("Errors:")}`);
+    console.log(`${chalk.red('Errors:')}`);
     console.log(JSON.stringify(uploadResponse.errors, null, 2));
   }
 
   if (uploadResponse.messages?.length) {
-    console.log(`${chalk.blue("Messages:")}`);
+    console.log(`${chalk.blue('Messages:')}`);
     console.log(JSON.stringify(uploadResponse.messages, null, 2));
   }
 
   if (uploadResponse.invalidRules?.length) {
-    console.log(`${chalk.red("Invalid Rules:")} (usually duplicates)`);
-    console.log(`${["\t", uploadResponse.invalidRules].flat().join("\n\t")}`);
+    console.log(`${chalk.red('Invalid Rules:')} (usually duplicates)`);
+    console.log(`${['\t', uploadResponse.invalidRules].flat().join('\n\t')}`);
   }
 
   if (uploadResponse.bulkOperationsId) {
-    console.log(`${chalk.gray("Awaiting confirmation on bulk operation.")}`)
+    console.log(`${chalk.gray('Awaiting confirmation on bulk operation.')}`);
     const success = await getBulkOpsStatus(uploadResponse.bulkOperationsId);
 
     if (success) {
       if (await setListDescription(`Updated by Directomatic on ${Date()}`)) {
-        console.log(`${chalk.gray("Updated datestamp in list description.")}`)
+        console.log(`${chalk.gray('Updated datestamp in list description.')}`);
       }
 
       return true;
@@ -301,16 +316,16 @@ const uploadBatch = async (i: number, batchList: BulkRedirectListItem[]): Promis
 };
 
 switch (arg) {
-  case "status":
+  case 'status':
     status();
     break;
-  case "list":
+  case 'list':
     list();
     break;
-  case "diff":
+  case 'diff':
     diff();
     break;
-  case "publish":
+  case 'publish':
     publish();
     break;
 }

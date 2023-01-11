@@ -149,9 +149,9 @@ export const emptyBulkList = async (): Promise<boolean> => {
     },
     body: JSON.stringify([]),
   })
-  .then((res: any) => res.json())
-  .then((payload: any) => payload.success as boolean);
-}
+    .then((res: any) => res.json())
+    .then((payload: any) => payload.success as boolean);
+};
 
 /**
  * Given a list of rules, POST (append and possibly upsert) the items to the
@@ -224,13 +224,15 @@ export const getBulkListContents = async (): Promise<BulkRedirectListItem[]> => 
 
   // eslint-disable-next-line no-constant-condition
   while (cursor !== false) {
-    const response: any = await fetch(`${listItemsApi}${ cursor ? '?cursor=' + cursor : '' }`, {
-      method: 'GET',
-      headers: {
-        authorization: `Bearer ${process.env.CF_API_TOKEN}`,
-      },
-    })
-    .then((res: any) => res.json());
+    const response: any = await fetch(
+      `${listItemsApi}${cursor ? '?cursor=' + cursor : ''}`,
+      {
+        method: 'GET',
+        headers: {
+          authorization: `Bearer ${process.env.CF_API_TOKEN}`,
+        },
+      }
+    ).then((res: any) => res.json());
 
     console.log(`Page ${i}: returned ${response.result.length} redirects`);
 
@@ -257,27 +259,27 @@ export const getBulkOpsStatus = async (id: string): Promise<boolean> => {
       authorization: `Bearer ${process.env.CF_API_TOKEN}`,
     },
   })
-  .then(res => res.json())
-  .then(async (payload) => {
-    if (payload.result.status === "completed") {
-      console.log(chalk.green("Bulk Operation completed."))
-      return true;
-    } else if (payload.result.status === "failed") {
-      console.log(chalk.red("Bulk Operation failed:"));
-      console.log(payload.error);
-      return false;
-    }
+    .then((res) => res.json())
+    .then(async (payload) => {
+      if (payload.result.status === 'completed') {
+        console.log(chalk.green('Bulk Operation completed.'));
+        return true;
+      } else if (payload.result.status === 'failed') {
+        console.log(chalk.red('Bulk Operation failed:'));
+        console.log(payload.error);
+        return false;
+      }
 
-    // @TODO: It's pending or in progress... need to wait.
-    await new Promise(r => setTimeout(r, 5000));
-    return await getBulkOpsStatus(id);
-  })
-  .catch(err => {
-    console.log(chalk.red("Checking for bulk operations status failed."));
-    console.log(err);
-    return false;
-  });
-}
+      // @TODO: It's pending or in progress... need to wait.
+      await new Promise((r) => setTimeout(r, 5000));
+      return await getBulkOpsStatus(id);
+    })
+    .catch((err) => {
+      console.log(chalk.red('Checking for bulk operations status failed.'));
+      console.log(err);
+      return false;
+    });
+};
 
 /**
  * Update the list description with an updated time
@@ -290,5 +292,5 @@ export const setListDescription = async (desc: string): Promise<boolean> => {
       'authorization': `Bearer ${process.env.CF_API_TOKEN}`,
     },
     body: JSON.stringify({ description: desc }),
-  }).then(res => res.ok)
-}
+  }).then((res) => res.ok);
+};
