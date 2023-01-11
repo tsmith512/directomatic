@@ -196,8 +196,15 @@ const diff = async () => {
   console.log(`${chalk.blue("Messages:")} ${["\t", ...messages].join("\n\t")}`);
 
   // @TODO: What is a useful way to actually dump these?
-  console.log(`${chalk.blue("To Add:")} (these are only in the spreadshet) ${["\t", ...addedRules.map(r => (`${r.redirect.source_url} --> ${r.redirect.target_url}`))].join("\n\t")}`);
-  console.log(`${chalk.blue("To Remove:")} (these are only in Dash) ${["\t", ...removedRules.map(r => (`${r.redirect.source_url} --> ${r.redirect.target_url}`))].join("\n\t")}`);
+  if (addedRules.length) {
+    console.log(`${chalk.blue("To Add:")} (these are only in the spreadshet)`);
+    console.log(addedRules.map(r => (`${r.redirect.source_url} --> ${r.redirect.target_url}`)).join("\n\t"));
+  }
+
+  if (removedRules.length) {
+    console.log(`${chalk.blue("To Remove:")} (these are only in Dash)`);
+    console.log(removedRules.map(r => (`${r.redirect.source_url} --> ${r.redirect.target_url}`)).join("\n\t"));
+  }
 };
 
 /**
@@ -225,11 +232,20 @@ const publish = async () => {
   const color = uploadResponse.success ? chalk.green : chalk.red;
   console.log(`Success? ${color(uploadResponse.success)}`);
 
-  console.log(`${chalk.red("Errors:")}`);
-  console.log(JSON.stringify(uploadResponse.errors, null, 2));
-  console.log(`${chalk.blue("Messages:")}`);
-  console.log(JSON.stringify(uploadResponse.messages, null, 2));
-  console.log(`${chalk.red("Invalid Rules:")} (usually duplicates) ${["\t", uploadResponse.invalidRules].flat().join("\n\t")}`);
+  if (uploadResponse.errors?.length) {
+    console.log(`${chalk.red("Errors:")}`);
+    console.log(JSON.stringify(uploadResponse.errors, null, 2));
+  }
+
+  if (uploadResponse.messages?.length) {
+    console.log(`${chalk.blue("Messages:")}`);
+    console.log(JSON.stringify(uploadResponse.messages, null, 2));
+  }
+
+  if (uploadResponse.invalidRules?.length) {
+    console.log(`${chalk.red("Invalid Rules:")} (usually duplicates)`);
+    console.log(`${["\t", uploadResponse.invalidRules].flat().join("\n\t")}`);
+  }
 
   if (uploadResponse.bulkOperationsId) {
     console.log(`${chalk.gray("Awaiting confirmation on bulk operation.")}`)
