@@ -37,7 +37,7 @@ Sheet and produces a validated, localized, full-URL list of rules for Cloudflare
   - @TODO: Locales are hard-coded but should be configurable.
 - Using Node 18+ (I highly recommend [NVM](https://github.com/nvm-sh/nvm))
   - Run `npm install`
-  - Run `npm run task [task name]`
+  - Run `npm run [task name]`
 
 \* _Specifics below._
 
@@ -86,13 +86,13 @@ Sheet and produces a validated, localized, full-URL list of rules for Cloudflare
 ## Usage
 
 - Populate the spreadsheet with the necessary paths.
-- **Status:** `npm run task status` to confirm both integrations are working and
+- **Status:** `npm run status` to confirm both integrations are working and
   get a count of how many rows are in each system.
-- **List:** `npm run task list` to read and validate rules from the spreadsheet.
-- **Diff:** `npm run task diff` to compare processed rules from the spreadsheet
+- **List:** `npm run list` to read and validate rules from the spreadsheet.
+- **Diff:** `npm run diff` to compare processed rules from the spreadsheet
   with the published rules on the Rules List API to see what would be added or
   removed. Note that the download of rules from Cloudflare can take time.
-- **Publish:** Use `/publish` to process the spreadsheet into rules and
+- **Publish:** Use `npm run publish` to process the spreadsheet into rules and
   _replace_ the List on Cloudflare.
   - Current limitation: this method truncates the list, then adds values back in
     batches of 1000.
