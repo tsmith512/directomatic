@@ -21,6 +21,7 @@ import {
   getBulkListStatus,
   getBulkOpsStatus,
   makeBulkList,
+  setListDescription,
   uploadBulkList,
   // uploadBulkList,
 } from './outputs';
@@ -249,7 +250,13 @@ const publish = async () => {
 
   if (uploadResponse.bulkOperationsId) {
     console.log(`${chalk.gray("Awaiting confirmation on bulk operation.")}`)
-    await getBulkOpsStatus(uploadResponse.bulkOperationsId);
+    const success = await getBulkOpsStatus(uploadResponse.bulkOperationsId);
+
+    if (success) {
+      if (await setListDescription(`Updated by Directomatic on ${Date()}`)) {
+        console.log(`${chalk.gray("Updated datestamp in list description.")}`)
+      }
+    }
   }
 };
 

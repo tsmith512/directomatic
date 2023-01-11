@@ -179,15 +179,6 @@ console.log(response);
     );
 
     report.bulkOperationsId = response.result.operation_id;
-
-    await fetch(listApi, {
-      method: 'PUT',
-      headers: {
-        'content-type': 'application/json',
-        'authorization': `Bearer ${process.env.CF_API_TOKEN}`,
-      },
-      body: JSON.stringify({ description: `Updated by Directomatic on ${Date()}` }),
-    });
   }
 
   return report;
@@ -247,4 +238,18 @@ export const getBulkOpsStatus = async (id: string): Promise<boolean> => {
     console.log(err);
     return false;
   })
+}
+
+/**
+ * Update the list description with an updated time
+ */
+export const setListDescription = async (desc: string): Promise<boolean> => {
+  return await fetch(listApi, {
+    method: 'PUT',
+    headers: {
+      'content-type': 'application/json',
+      'authorization': `Bearer ${process.env.CF_API_TOKEN}`,
+    },
+    body: JSON.stringify({ description: desc }),
+  }).then(res => res.ok)
 }
