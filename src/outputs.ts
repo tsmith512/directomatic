@@ -149,7 +149,7 @@ export const uploadBulkList = async (
       'content-type': 'application/json',
       'authorization': `Bearer ${process.env.CF_API_TOKEN}`,
     },
-    body: JSON.stringify(list.slice(400, 700)),
+    body: JSON.stringify(list),
   }).then((res) => res.json());
 console.log(response);
   const report: DirectomaticResponse = {
@@ -187,23 +187,40 @@ console.log(response);
 /**
  * Query the Cloudflare API to fetch all currently published redirects.
  *
+ * @TODO: Cache this locally, wow this takes a while.
+ *
  * @returns (Promise<BulkRedirectListItem[]>) Published redirect list rules
  */
 export const getBulkListContents = async (): Promise<BulkRedirectListItem[]> => {
-  const response = await fetch(listItemsApi, {
-    method: 'GET',
-    headers: {
-      authorization: `Bearer ${process.env.CF_API_TOKEN}`,
-    },
-  });
+  const listContents: BulkRedirectListItem[] = [];
+  let cursor: string | boolean = '';
+  let i = 1;
 
-  const payload: any = await response.json();
+  console.log(`Fetching all Bulk Redirect list items...`)
 
-  if (payload?.success && payload?.result?.length) {
-    return payload.result as BulkRedirectListItem[];
+  // eslint-disable-next-line no-constant-condition
+  while (cursor !== false) {
+    const response: any = await fetch(`${listItemsApi}${ cursor ? '?cursor=' + cursor : '' }`, {
+      method: 'GET',
+      headers: {
+        authorization: `Bearer ${process.env.CF_API_TOKEN}`,
+      },
+    })
+    .then((res: any) => res.json());
+
+    console.log(`Page ${i}: returned ${response.result.length} redirects`);
+
+    if (response?.result?.length) {
+      listContents.push(...response.result);
+    }
+
+    cursor = response.result_info?.cursors?.after || false;
+    i++;
   }
 
-  return [];
+  console.log(chalk.green(`Downloaded ${listContents.length} redirects.`));
+
+  return listContents;
 };
 
 /**

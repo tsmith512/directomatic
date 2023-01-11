@@ -153,10 +153,10 @@ const list = async () => {
   console.log(`\n${chalk.blue("## Messages:")}\n${messages.join("\n")}`);
 
   // @TODO: What is a useful way to actually dump these?
-  console.log(`\n${chalk.blue("## Valid Rules:")}`);
+  console.log(`\n${chalk.blue("## Valid Rules:")} (total ${redirectsList.length})`);
   console.log(redirectsList.map(r => (`${r.source} --> ${r.destination}`)).join("\n"));
 
-  console.log(`\n${chalk.red("## Invalid Rules:")}`);
+  console.log(`\n${chalk.red("## Invalid Rules:")} (total ${badRows.length})`);
   console.log(badRows.map(r => (`${r.source} --> ${r.destination}`)).join("\n"));
 };
 
@@ -219,8 +219,13 @@ const diff = async () => {
  * GET /publish
  *
  * Fetch redirects from the Google Sheet, sanitize/validate, prep the "good" ones
- * for the Cloudflare Ruleset API, and replace the list with the new set. Report
- * on any errors from Cloudflare and note any redirects that the API rejected.
+ * for the Cloudflare Ruleset API, and upsert into the list. Report on any errors
+ * from Cloudflare and note any redirects that the API rejected.
+ *
+ * @TODO NOTE: The behavior of PUT changed, this works properly to ADD to the
+ * list but is not consistent with the API documentation. It also does not
+ * currently delete anything because the list replacement (PUT) stopped working.
+ * This only adds and updates list items.
  */
 const publish = async () => {
   // Source the unprocessed redirects list from the Google Sheet.
@@ -234,8 +239,28 @@ const publish = async () => {
   // Format as needed for the Cloudflare Ruleset API
   const bulkList = makeBulkList(redirectsList);
 
+  console.log(`Uploading ${bulkList.length} redirects in ${Math.ceil(bulkList.length / 1000)} batches`);
+
+  // If you POST too many redirects at once, you'll get a rate limiting response
+  // so chunk the list in batches of 1000 and post one at a time.
+  let i = 0;
+  for (let n = 0; n < bulkList.length; n += 1000) {
+    i++;
+    console.log(chalk.yellow(`### Batch ${i}`));
+
+    const success = await uploadBatch(i, bulkList.slice(n, n + 1000));
+    const color = success ? chalk.green : chalk.red;
+
+    console.log(color(`Batch ${i}: ${success ? "complete" : "failed"}`));
+  }
+};
+
+/**
+ * Upload a set of redirects and report on (and await) the results.
+ */
+const uploadBatch = async (i: number, batchList: BulkRedirectListItem[]): Promise<boolean> => {
   // Send the processed list to CF
-  const uploadResponse = await uploadBulkList(bulkList);
+  const uploadResponse = await uploadBulkList(batchList);
 
   const color = uploadResponse.success ? chalk.green : chalk.red;
   console.log(`Success? ${color(uploadResponse.success)}`);
@@ -263,8 +288,17 @@ const publish = async () => {
       if (await setListDescription(`Updated by Directomatic on ${Date()}`)) {
         console.log(`${chalk.gray("Updated datestamp in list description.")}`)
       }
+
+      return true;
+    } else {
+      console.log(chalk.red(`Bulk operation failed for batch ${i}.`));
+      return false;
     }
+  } else {
+    console.log(chalk.yellow(`No bulk operation returned for batch ${i}.`));
   }
+
+  return uploadResponse.success || false;
 };
 
 switch (arg) {
