@@ -2,15 +2,9 @@
 
 # A Redirect Generator
 
-This service, intended to run locally or as a Cloudflare
-[Worker](https://developers.cloudflare.com/workers), consumes a list of redirect
-paths (or full URLs) from a Google Sheet and produces a validated, localized,
-full-URL list of rules for Cloudflare's
+This CLI script consumes a list of redirect paths (or full URLs) from a Google
+Sheet and produces a validated, localized, full-URL list of rules for Cloudflare's
 [Bulk Redirects](https://developers.cloudflare.com/rules/bulk-redirects/).
-
-This service exposes a very simple API but currently lacks a frontend. I hope you
-like [Postman](https://www.postman.com/) or [Insomnia](https://insomnia.rest/).
-Or you're a badass who can `cURL` everything.
 
 ## Features
 
@@ -30,24 +24,20 @@ Or you're a badass who can `cURL` everything.
 - Provision a Cloudflare API token to write to it \*
 - Create a Directomatic Worker (whether you intend to run locally or not)
 - Make up a Bearer token you will use to authenticate your requests. Doesn't matter what it is.
-- Add the following _[Secrets](https://developers.cloudflare.com/workers/wrangler/commands/#secret)_ using Wrangler:
-  - `AUTH_TOKEN` the Bearer token used to authenticate any Directomatic request
+- Create a copy of `.env.sample` as `.env` and update the following:
+  - `DEFAULT_DEST_DOMAIN` with the default domain to apply to root-relative URLs
   - `GSHEETS_ID` the spreadsheet ID, which you can get from the URL
   - `GSHEETS_API_KEY` the API key for Google Sheets
   - `CF_ACCT_ID` the Account Tag (external ID) that owns the list
   - `CF_LIST_ID` the Rules List ID, which must be a "redirects" list
   - `CF_API_TOKEN` the API key for Cloudflare API
-- Confirm in `wrangler.toml` that the default values are acceptable for:
+- Confirm these default values in `.env` (from `.env.sample`) are correct
   - `GSHEETS_API_ENDPOINT`
   - `CF_API_ENDDPOINT`
-  - `DEFAULT_DEST_DOMAIN` the default base domain and schema for path-only rules.
-    - **You will definitely need to edit this.**
-    - @TODO: So store elsewhere?
   - @TODO: Locales are hard-coded but should be configurable.
-- Deploy Directomatic to Workers with `wrangler publish` or use `wrangler dev`
-  to run it locally.
-  - Either way, use the Bearer token to authenticate all requests to it.
-- Request `/status` to confirm that both API integrations are properly running.
+- Using Node 18+ (I highly recommend [NVM](https://github.com/nvm-sh/nvm))
+  - Run `npm install`
+  - Run `npm run task [task name]`
 
 \* _Specifics below._
 
@@ -96,21 +86,26 @@ Or you're a badass who can `cURL` everything.
 ## Usage
 
 - Populate the spreadsheet with the necessary paths.
-- Use `/status` to confirm both integrations are working.
-- Use `/list` to read and validate rules from the spreadsheet.
-- Use `/diff` to compare processed rules from the spreadsheet with the published
-  rules on the Rules List API to see what would be added or removed.
-  - _There's a bug with this endpoint. Directomatic doesn't support the paginated responses, but I can only fetch the first page in testing anyway._
-- Use `/publish` to process the spreadsheet into rules and _replace_ the List on
-  Cloudflare.
+- **Status:** `npm run task status` to confirm both integrations are working and
+  get a count of how many rows are in each system.
+- **List:** `npm run task list` to read and validate rules from the spreadsheet.
+- **Diff:** `npm run task diff` to compare processed rules from the spreadsheet
+  with the published rules on the Rules List API to see what would be added or
+  removed. Note that the download of rules from Cloudflare can take time.
+- **Publish:** Use `/publish` to process the spreadsheet into rules and
+  _replace_ the List on Cloudflare.
+  - Current limitation: this method truncates the list, then adds values back in
+    batches of 1000.
 - If you haven't already, ["create a Bulk Redirect rule to enable the redirects in the list"](https://developers.cloudflare.com/rules/bulk-redirects/create-dashboard/#3-create-a-bulk-redirect-rule-to-enable-the-redirects-in-the-list) in the Cloudflare Dashboard.
 
 ## Known Limitations
 
-- Uhhh this may not scale super awesomely with long lists or lots of locales...
 - The spreadsheet must be set to "Anyone with the link can View"
 - The app will not enable/disable the List as a Bulk Redirect list, only update
-- There's no frontend
+- The _publish_ function does a DROP then INSERT, meaning there's a few seconds
+  where the list is empty.
+- The _diff_ function compares redirect rules exactly and will report both an
+  add and a removal for a rule that has changed.
 
 ### Troubleshooting
 
