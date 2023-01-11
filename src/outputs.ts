@@ -134,8 +134,32 @@ export const getBulkListStatus = async (): Promise<DirectomaticResponse> => {
 };
 
 /**
- * Given the new list of rules, PUT (completely replace) the destination list in
- * the Cloudflare Rules List API.
+ * Truncate the Bulk Redirect List.
+ *
+ * Doing this separately from adding new items worked more consistently.
+ *
+ * @returns (boolean) was the operation successful
+ */
+export const emptyBulkList = async (): Promise<boolean> => {
+  return await fetch(listItemsApi, {
+    method: 'PUT',
+    headers: {
+      'content-type': 'application/json',
+      'authorization': `Bearer ${process.env.CF_API_TOKEN}`,
+    },
+    body: JSON.stringify([]),
+  })
+  .then((res: any) => res.json())
+  .then((payload: any) => payload.success as boolean);
+}
+
+/**
+ * Given a list of rules, POST (append and possibly upsert) the items to the
+ * Cloudflare Rules List API.
+ *
+ * @TODO: This works but is inconsistent with API documentation, and behavior
+ * has changed since Directomatic v1. PUT with large payloads have no effect,
+ * but a POST with duplicates will no longer error out.
  *
  * @param list (BulkRedirectListItem[]) The rules ready to upload
  * @returns TBD -- API response from Cloudflare directly
@@ -151,7 +175,7 @@ export const uploadBulkList = async (
     },
     body: JSON.stringify(list),
   }).then((res) => res.json());
-console.log(response);
+
   const report: DirectomaticResponse = {
     success: response?.success || false,
     errors: response?.errors || [],
@@ -196,7 +220,7 @@ export const getBulkListContents = async (): Promise<BulkRedirectListItem[]> => 
   let cursor: string | boolean = '';
   let i = 1;
 
-  console.log(`Fetching all Bulk Redirect list items...`)
+  console.log(chalk.yellow('Fetching all Bulk Redirect list items...'));
 
   // eslint-disable-next-line no-constant-condition
   while (cursor !== false) {
@@ -218,7 +242,7 @@ export const getBulkListContents = async (): Promise<BulkRedirectListItem[]> => 
     i++;
   }
 
-  console.log(chalk.green(`Downloaded ${listContents.length} redirects.`));
+  console.log(chalk.green(`Received ${listContents.length} redirects.`));
 
   return listContents;
 };
@@ -235,8 +259,6 @@ export const getBulkOpsStatus = async (id: string): Promise<boolean> => {
   })
   .then(res => res.json())
   .then(async (payload) => {
-    console.log(payload);
-
     if (payload.result.status === "completed") {
       console.log(chalk.green("Bulk Operation completed."))
       return true;
@@ -254,7 +276,7 @@ export const getBulkOpsStatus = async (id: string): Promise<boolean> => {
     console.log(chalk.red("Checking for bulk operations status failed."));
     console.log(err);
     return false;
-  })
+  });
 }
 
 /**
