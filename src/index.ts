@@ -108,9 +108,12 @@ const status = async () => {
   const success = sheet.success && cflist.success;
   const color = success ? chalk.green : chalk.red;
 
-  console.log(`Success? ${color(success)}`);
-  console.log(`${chalk.red("Errors:")} ${["\t", sheet.errors, cflist.errors].flat().join("\n\t")}`);
-  console.log(`${chalk.blue("Messages:")} ${["\t", sheet.messages, cflist.messages].flat().join("\n\t")}`);
+  console.log(`${chalk.yellow("Success?")} ${color(success)}`);
+  console.log(`\n${chalk.red("## Errors:")}`)
+  console.log([sheet.errors, cflist.errors].flat().join("\n"));
+
+  console.log(`\n${chalk.blue("## Messages:")}`);
+  console.log([sheet.messages, cflist.messages].flat().join("\n"));
 }
 
 /**
@@ -147,11 +150,14 @@ const list = async () => {
     `Google sheet contains ${redirectsList.length} valid rules and ${color(badRows.length)} rows with errors.`,
   ];
 
-  console.log(`${chalk.blue("Messages:")} ${["\t", ...messages].join("\n\t")}`);
+  console.log(`\n${chalk.blue("## Messages:")}\n${messages.join("\n")}`);
 
   // @TODO: What is a useful way to actually dump these?
-  console.log(`${chalk.blue("Valid Rules:")} ${["\t", ...redirectsList.map(r => (`${r.source} --> ${r.destination}`))].join("\n\t")}`);
-  console.log(`${chalk.red("Invalid Rules:")} ${["\t", ...badRows.map(r => (`${r.source} --> ${r.destination}`))].join("\n\t")}`);
+  console.log(`\n${chalk.blue("## Valid Rules:")}`);
+  console.log(redirectsList.map(r => (`${r.source} --> ${r.destination}`)).join("\n"));
+
+  console.log(`\n${chalk.red("## Invalid Rules:")}`);
+  console.log(badRows.map(r => (`${r.source} --> ${r.destination}`)).join("\n"));
 };
 
 /**
@@ -194,17 +200,18 @@ const diff = async () => {
     ],
   ];
 
-  console.log(`${chalk.blue("Messages:")} ${["\t", ...messages].join("\n\t")}`);
+  console.log(`\n${chalk.blue("## Messages:")}`);
+  console.log(messages.join("\n"));
 
   // @TODO: What is a useful way to actually dump these?
   if (addedRules.length) {
-    console.log(`${chalk.blue("To Add:")} (these are only in the spreadshet)`);
-    console.log(addedRules.map(r => (`${r.redirect.source_url} --> ${r.redirect.target_url}`)).join("\n\t"));
+    console.log(`${chalk.green("## To Add:")} (these are only in the spreadshet)`);
+    console.log(addedRules.map(r => (`${r.redirect.source_url} --> ${r.redirect.target_url}`)).join("\n"));
   }
 
   if (removedRules.length) {
-    console.log(`${chalk.blue("To Remove:")} (these are only in Dash)`);
-    console.log(removedRules.map(r => (`${r.redirect.source_url} --> ${r.redirect.target_url}`)).join("\n\t"));
+    console.log(`${chalk.red("## To Remove:")} (these are only in Dash)`);
+    console.log(removedRules.map(r => (`${r.redirect.source_url} --> ${r.redirect.target_url}`)).join("\n"));
   }
 };
 
