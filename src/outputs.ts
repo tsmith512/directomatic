@@ -213,6 +213,10 @@ export const uploadBulkList = async (
  *
  * @TODO: Cache this locally, wow this takes a while.
  *
+ * Paginated results come in pages of 25. Set the "cursor" query arg from the
+ * previous response's result_into.cursors.after to get the next page. When
+ * result_info.cursors.after is not defined, you're on the last page.
+ *
  * @returns (Promise<BulkRedirectListItem[]>) Published redirect list rules
  */
 export const getBulkListContents = async (): Promise<BulkRedirectListItem[]> => {
@@ -234,23 +238,30 @@ export const getBulkListContents = async (): Promise<BulkRedirectListItem[]> => 
       }
     ).then((res: any) => res.json());
 
-    console.log(`Page ${i}: returned ${response.result.length} redirects`);
-
     if (response?.result?.length) {
       listContents.push(...response.result);
+    }
+
+    if (typeof process.stdout !== 'undefined') {
+      process.stdout.clearLine(0);
+      process.stdout.cursorTo(0);
+      process.stdout.write(`Page ${i} / Total ${listContents.length}`);
     }
 
     cursor = response.result_info?.cursors?.after || false;
     i++;
   }
 
-  console.log(chalk.green(`Received ${listContents.length} redirects.`));
+  console.log(chalk.green(`\nReceived ${listContents.length} redirects.`));
 
   return listContents;
 };
 
 /**
- * Query the Bulk Operations API to check status
+ * Query the Bulk Operations API to check status of an async PUT/POST operation.
+ *
+ * @param id (string) Bulk Operation ID to query
+ * @returns (boolean) True if operation confirmed successful; false otherwise
  */
 export const getBulkOpsStatus = async (id: string): Promise<boolean> => {
   return fetch(`${bulkOpsApi}/${id}`, {
@@ -282,7 +293,12 @@ export const getBulkOpsStatus = async (id: string): Promise<boolean> => {
 };
 
 /**
- * Update the list description with an updated time
+ * Update the list description
+ *
+ * @param desc (string) New description to set
+ * @returns (boolean) true if HTTP response is a success
+ *
+ * @TODO: Should check res.ok and also payload.success probably...
  */
 export const setListDescription = async (desc: string): Promise<boolean> => {
   return await fetch(listApi, {

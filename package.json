@@ -1,15 +1,15 @@
 {
   "name": "directomatic",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Redirect Generator and Transformer Robot",
   "scripts": {
     "format": "prettier --write  '*.{json,js}' 'src/**/*.{js,ts}' 'test/**/*.{js,ts}'",
     "lint": "eslint --max-warnings=0 src && prettier --check '*.{json,js}' 'src/**/*.{js,ts}' 'test/**/*.{js,ts}'",
     "prettier": "prettier --write '*.{json,js}' 'src/**/*.{js,ts}' 'test/**/*.{js,ts}'",
-    "status": "ts-node-esm src/index.ts status",
-    "list": "ts-node-esm src/index.ts list",
-    "diff": "ts-node-esm src/index.ts diff",
-    "publish": "ts-node-esm src/index.ts publish",
+    "status": "NODE_NO_WARNINGS=1 ts-node-esm src/index.ts status",
+    "list": "NODE_NO_WARNINGS=1 ts-node-esm src/index.ts list",
+    "diff": "NODE_NO_WARNINGS=1 ts-node-esm src/index.ts diff",
+    "publish": "NODE_NO_WARNINGS=1 ts-node-esm src/index.ts publish",
     "task": "ts-node-esm src/index.ts"
   },
   "author": "Taylor Smith <tsmith@cloudflare.com>",

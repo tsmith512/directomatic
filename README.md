@@ -6,6 +6,10 @@ This CLI script consumes a list of redirect paths (or full URLs) from a Google
 Sheet and produces a validated, localized, full-URL list of rules for Cloudflare's
 [Bulk Redirects](https://developers.cloudflare.com/rules/bulk-redirects/).
 
+**New in v2:** v1 was a frontend-less Worker script, v2 has been mostly rebuilt
+as a CLI tool because the redirect lists are so long, more interactivity and
+longer execution times were needed.
+
 ## Features
 
 - Accommodates root-relative paths _or_ full URLs
