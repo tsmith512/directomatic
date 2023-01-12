@@ -238,7 +238,7 @@ const publish = async () => {
   // If you POST too many redirects at once, you'll get a rate limiting response
   // so chunk the list in batches of 1000 and post one at a time.
   let i = 0;
-  const batch = 1000;
+  const batch = 500;
   const results: boolean[] = []
   for (let n = 0; n < bulkList.length; n += batch) {
     i++;
@@ -302,6 +302,13 @@ const uploadBatch = async (
   return uploadResponse.success || false;
 };
 
+const wipe = async () => {
+  console.log('Truncating the existing list...');
+  const success = await emptyBulkList();
+  const color = success ? chalk.green : chalk.red;
+  console.log(`${chalk.yellow('Success?')} ${color(success ? 'complete' : 'failed')}`);
+}
+
 switch (arg) {
   case 'status':
     status();
@@ -314,5 +321,8 @@ switch (arg) {
     break;
   case 'publish':
     publish();
+    break;
+  case 'wipe':
+    wipe();
     break;
 }
