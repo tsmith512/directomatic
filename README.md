@@ -104,6 +104,8 @@ longer execution times were needed.
 
 ## Known Limitations
 
+- **Big:** If you have a giant list, you may get ratelimited by the CF API,
+  which this script does not currently handle, resulting in failed list patches.
 - The spreadsheet must be set to "Anyone with the link can View"
 - The app will not enable/disable the List as a Bulk Redirect list, only update
 - The _publish_ function does a DROP then INSERT, meaning there's a few seconds

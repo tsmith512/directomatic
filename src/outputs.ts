@@ -198,10 +198,6 @@ export const uploadBulkList = async (
 
   // No errors on upload, update the description with the name of this app + date
   else {
-    report.messages?.push(
-      `Cloudflare API provided operation ID ${response.result.operation_id}`
-    );
-
     report.bulkOperationsId = response.result.operation_id;
   }
 

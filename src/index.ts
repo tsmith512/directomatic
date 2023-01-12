@@ -239,6 +239,7 @@ const publish = async () => {
   // so chunk the list in batches of 1000 and post one at a time.
   let i = 0;
   const batch = 1000;
+  const results: boolean[] = []
   for (let n = 0; n < bulkList.length; n += batch) {
     i++;
     console.log(chalk.yellow(`### Batch ${i}`));
@@ -247,6 +248,11 @@ const publish = async () => {
     const color = success ? chalk.green : chalk.red;
 
     console.log(color(`Batch ${i}: ${success ? 'complete' : 'failed'}`));
+    results.push(success);
+  }
+
+  if (await setListDescription(`Updated by Directomatic on ${Date()}`)) {
+    console.log(`${chalk.gray('Updated datestamp in list description.')}`);
   }
 };
 
@@ -275,18 +281,15 @@ const uploadBatch = async (
 
   if (uploadResponse.invalidRules?.length) {
     console.log(`${chalk.red('Invalid Rules:')} (usually duplicates)`);
-    console.log(`${['\t', uploadResponse.invalidRules].flat().join('\n\t')}`);
+    console.log(JSON.stringify(uploadResponse.invalidRules, null, 2));
   }
 
   if (uploadResponse.bulkOperationsId) {
-    console.log(`${chalk.gray('Awaiting confirmation on bulk operation.')}`);
+    console.log(`${chalk.white('Awaiting confirmation on bulk operation.')} (${chalk.grey(uploadResponse.bulkOperationsId)})`);
     const success = await getBulkOpsStatus(uploadResponse.bulkOperationsId);
 
     if (success) {
-      if (await setListDescription(`Updated by Directomatic on ${Date()}`)) {
-        console.log(`${chalk.gray('Updated datestamp in list description.')}`);
-      }
-
+      console.log(chalk.green(`Batch ${i} accepted.`));
       return true;
     } else {
       console.log(chalk.red(`Bulk operation failed for batch ${i}.`));
