@@ -1,3 +1,5 @@
+import chalk from 'chalk';
+
 import { DirectomaticResponse, Locales, RedirectCode, RedirectProps } from '.';
 import { makeFullURL } from './processing';
 
@@ -33,10 +35,13 @@ export interface BulkRedirectListItemDetails {
 }
 
 // For the list metadata
-const listApi = `${CF_API_ENDPOINT}/accounts/${CF_ACCT_ID}/rules/lists/${CF_LIST_ID}`;
+const listApi = `${process.env.CF_API_ENDPOINT}/accounts/${process.env.CF_ACCT_ID}/rules/lists/${process.env.CF_LIST_ID}`;
 
 // To the redirects contained in that list
-const listItemsApi = `${CF_API_ENDPOINT}/accounts/${CF_ACCT_ID}/rules/lists/${CF_LIST_ID}/items`;
+const listItemsApi = `${process.env.CF_API_ENDPOINT}/accounts/${process.env.CF_ACCT_ID}/rules/lists/${process.env.CF_LIST_ID}/items`;
+
+// For bulk operations API (you'll still need to append the operation ID)
+const bulkOpsApi = `${process.env.CF_API_ENDPOINT}/accounts/${process.env.CF_ACCT_ID}/rules/lists/bulk_operations`;
 
 export interface BulkUploadReport {
   success: boolean;
@@ -97,14 +102,14 @@ export const getBulkListStatus = async (): Promise<DirectomaticResponse> => {
     method: 'GET',
     headers: {
       'content-type': 'application/json',
-      'authorization': `Bearer ${CF_API_TOKEN}`,
+      'authorization': `Bearer ${process.env.CF_API_TOKEN}`,
     },
   });
 
   const payload: any = await response.json();
 
   const messages = [
-    `Cloudflare Rules List URL https://dash.cloudflare.com/${CF_ACCT_ID}/configurations/lists/${CF_LIST_ID}`,
+    `Cloudflare Rules List URL https://dash.cloudflare.com/${process.env.CF_ACCT_ID}/configurations/lists/${process.env.CF_LIST_ID}`,
   ];
 
   if (payload?.result) {
@@ -129,8 +134,32 @@ export const getBulkListStatus = async (): Promise<DirectomaticResponse> => {
 };
 
 /**
- * Given the new list of rules, PUT (completely replace) the destination list in
- * the Cloudflare Rules List API.
+ * Truncate the Bulk Redirect List.
+ *
+ * Doing this separately from adding new items worked more consistently.
+ *
+ * @returns (boolean) was the operation successful
+ */
+export const emptyBulkList = async (): Promise<boolean> => {
+  return await fetch(listItemsApi, {
+    method: 'PUT',
+    headers: {
+      'content-type': 'application/json',
+      'authorization': `Bearer ${process.env.CF_API_TOKEN}`,
+    },
+    body: JSON.stringify([]),
+  })
+    .then((res: any) => res.json())
+    .then((payload: any) => payload.success as boolean);
+};
+
+/**
+ * Given a list of rules, POST (append and possibly upsert) the items to the
+ * Cloudflare Rules List API.
+ *
+ * @TODO: This works but is inconsistent with API documentation, and behavior
+ * has changed since Directomatic v1. PUT with large payloads have no effect,
+ * but a POST with duplicates will no longer error out.
  *
  * @param list (BulkRedirectListItem[]) The rules ready to upload
  * @returns TBD -- API response from Cloudflare directly
@@ -139,13 +168,36 @@ export const uploadBulkList = async (
   list: BulkRedirectListItem[]
 ): Promise<DirectomaticResponse> => {
   const response: any = await fetch(listItemsApi, {
-    method: 'PUT',
+    method: 'POST',
     headers: {
       'content-type': 'application/json',
-      'authorization': `Bearer ${CF_API_TOKEN}`,
+      'authorization': `Bearer ${process.env.CF_API_TOKEN}`,
     },
     body: JSON.stringify(list),
-  }).then((res) => res.json());
+  }).then((res) => {
+    if (res.status === 200) {
+      return res.json();
+    }
+
+    if (res.status === 429) {
+      // We got rate-limited, let's return that instead of the response object
+      // so we can re-try at the top-level.
+      return 429;
+    }
+
+    // @TODO: If we're here, we didn't get a 200 OK or a 429 RATE LIMIT...
+    // so what happened?
+    console.log(res);
+    return res.json();
+  });
+
+  if (response === 429) {
+    console.log(`${
+      chalk.yellow("Rate Limited. Waiting 6 minutes.")
+    } (starting at ${new Date().getHours()}:${new Date().getMinutes()})`);
+    await new Promise((r) => setTimeout(r, 1000 * 60 * 6));
+    return await uploadBulkList(list);
+  }
 
   const report: DirectomaticResponse = {
     success: response?.success || false,
@@ -169,18 +221,7 @@ export const uploadBulkList = async (
 
   // No errors on upload, update the description with the name of this app + date
   else {
-    report.messages?.push(
-      `Cloudflare API provided operation ID ${response.result.operation_id}`
-    );
-
-    await fetch(listApi, {
-      method: 'PUT',
-      headers: {
-        'content-type': 'application/json',
-        'authorization': `Bearer ${CF_API_TOKEN}`,
-      },
-      body: JSON.stringify({ description: `Updated by Directomatic on ${Date()}` }),
-    });
+    report.bulkOperationsId = response.result.operation_id;
   }
 
   return report;
@@ -189,21 +230,102 @@ export const uploadBulkList = async (
 /**
  * Query the Cloudflare API to fetch all currently published redirects.
  *
+ * @TODO: Cache this locally, wow this takes a while.
+ *
+ * Paginated results come in pages of 25. Set the "cursor" query arg from the
+ * previous response's result_into.cursors.after to get the next page. When
+ * result_info.cursors.after is not defined, you're on the last page.
+ *
  * @returns (Promise<BulkRedirectListItem[]>) Published redirect list rules
  */
 export const getBulkListContents = async (): Promise<BulkRedirectListItem[]> => {
-  const response = await fetch(listItemsApi, {
-    method: 'GET',
-    headers: {
-      authorization: `Bearer ${CF_API_TOKEN}`,
-    },
-  });
+  const listContents: BulkRedirectListItem[] = [];
+  let cursor: string | boolean = '';
+  let i = 1;
 
-  const payload: any = await response.json();
+  console.log(chalk.yellow('Fetching all Bulk Redirect list items...'));
 
-  if (payload?.success && payload?.result?.length) {
-    return payload.result as BulkRedirectListItem[];
+  // eslint-disable-next-line no-constant-condition
+  while (cursor !== false) {
+    const response: any = await fetch(
+      `${listItemsApi}${cursor ? '?cursor=' + cursor : ''}`,
+      {
+        method: 'GET',
+        headers: {
+          authorization: `Bearer ${process.env.CF_API_TOKEN}`,
+        },
+      }
+    ).then((res: any) => res.json());
+
+    if (response?.result?.length) {
+      listContents.push(...response.result);
+    }
+
+    if (typeof process.stdout !== 'undefined') {
+      process.stdout.clearLine(0);
+      process.stdout.cursorTo(0);
+      process.stdout.write(`Page ${i} / Total ${listContents.length}`);
+    }
+
+    cursor = response.result_info?.cursors?.after || false;
+    i++;
   }
 
-  return [];
+  console.log(chalk.green(`\nReceived ${listContents.length} redirects.`));
+
+  return listContents;
+};
+
+/**
+ * Query the Bulk Operations API to check status of an async PUT/POST operation.
+ *
+ * @param id (string) Bulk Operation ID to query
+ * @returns (boolean) True if operation confirmed successful; false otherwise
+ */
+export const getBulkOpsStatus = async (id: string): Promise<boolean> => {
+  return fetch(`${bulkOpsApi}/${id}`, {
+    method: 'GET',
+    headers: {
+      authorization: `Bearer ${process.env.CF_API_TOKEN}`,
+    },
+  })
+    .then((res) => res.json())
+    .then(async (payload) => {
+      if (payload.result.status === 'completed') {
+        console.log(chalk.green('Bulk Operation completed.'));
+        return true;
+      } else if (payload.result.status === 'failed') {
+        console.log(chalk.red('Bulk Operation failed:'));
+        console.log(payload.error);
+        return false;
+      }
+
+      // @TODO: It's pending or in progress... need to wait.
+      await new Promise((r) => setTimeout(r, 5000));
+      return await getBulkOpsStatus(id);
+    })
+    .catch((err) => {
+      console.log(chalk.red('Checking for bulk operations status failed.'));
+      console.log(err);
+      return false;
+    });
+};
+
+/**
+ * Update the list description
+ *
+ * @param desc (string) New description to set
+ * @returns (boolean) true if HTTP response is a success
+ *
+ * @TODO: Should check res.ok and also payload.success probably...
+ */
+export const setListDescription = async (desc: string): Promise<boolean> => {
+  return await fetch(listApi, {
+    method: 'PUT',
+    headers: {
+      'content-type': 'application/json',
+      'authorization': `Bearer ${process.env.CF_API_TOKEN}`,
+    },
+    body: JSON.stringify({ description: desc }),
+  }).then((res) => res.ok);
 };

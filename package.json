@@ -1,14 +1,17 @@
 {
   "name": "directomatic",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Redirect Generator and Transformer Robot",
-  "main": "dist/worker.js",
   "scripts": {
-    "build": "webpack",
     "format": "prettier --write  '*.{json,js}' 'src/**/*.{js,ts}' 'test/**/*.{js,ts}'",
     "lint": "eslint --max-warnings=0 src && prettier --check '*.{json,js}' 'src/**/*.{js,ts}' 'test/**/*.{js,ts}'",
     "prettier": "prettier --write '*.{json,js}' 'src/**/*.{js,ts}' 'test/**/*.{js,ts}'",
-    "test": "jest --config jestconfig.json --npmverbose"
+    "status": "NODE_NO_WARNINGS=1 ts-node-esm src/index.ts status",
+    "list": "NODE_NO_WARNINGS=1 ts-node-esm src/index.ts list",
+    "diff": "NODE_NO_WARNINGS=1 ts-node-esm src/index.ts diff",
+    "publish": "NODE_NO_WARNINGS=1 ts-node-esm src/index.ts publish",
+    "wipe": "NODE_NO_WARNINGS=1 ts-node-esm src/index.ts wipe",
+    "task": "ts-node-esm src/index.ts"
   },
   "author": "Taylor Smith <tsmith@cloudflare.com>",
   "license": "Internal Use Only",
@@ -20,24 +23,22 @@
     ]
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^3.0.0",
-    "@types/jest": "^26.0.23",
-    "@types/service-worker-mock": "^2.0.1",
+    "@types/node": "^18.11.18",
     "@typescript-eslint/eslint-plugin": "^4.16.1",
     "@typescript-eslint/parser": "^4.16.1",
     "eslint": "^7.21.0",
     "eslint-config-prettier": "^8.1.0",
     "eslint-config-typescript": "^3.0.0",
-    "jest": "^27.0.1",
     "prettier": "^2.3.0",
-    "service-worker-mock": "^2.0.5",
-    "ts-jest": "^27.0.1",
     "ts-loader": "^9.2.2",
     "typescript": "^4.3.2",
     "webpack": "^5.38.1",
     "webpack-cli": "^4.7.0"
   },
   "dependencies": {
-    "itty-router": "^2.6.1"
+    "chalk": "^4.1",
+    "dotenv": "^16.0.3",
+    "nodemon": "^2.0.20",
+    "ts-node": "^10.9.1"
   }
 }
