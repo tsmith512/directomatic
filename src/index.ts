@@ -156,8 +156,8 @@ const list = async () => {
  * @returns ({ removed: BulkRedirectListItem[], added: BulkRedirectListItem[]})
  */
 const diff = async (): Promise<{
-  removed: BulkRedirectListItem[],
-  added: BulkRedirectListItem[],
+  removed: BulkRedirectListItem[];
+  added: BulkRedirectListItem[];
 }> => {
   // Source the unprocessed redirects list from the Google Sheet.
   const inputRows = await fetchRedirectRows();
@@ -282,7 +282,9 @@ const submitBatch = async (
   } else if (m === 'delete') {
     uploadResponse = await deleteBulkListItems(batchList);
   } else {
-    console.log(`${chalk.red("Error:")} submit method must be "post" or "delete", got "${m}".`)
+    console.log(
+      `${chalk.red('Error:')} submit method must be "post" or "delete", got "${m}".`
+    );
     return false;
   }
 
@@ -305,7 +307,11 @@ const submitBatch = async (
   }
 
   if (uploadResponse.bulkOperationsId) {
-    console.log(`${chalk.white('Awaiting confirmation on bulk operation.')} (${chalk.grey(uploadResponse.bulkOperationsId)})`);
+    console.log(
+      `${chalk.white('Awaiting confirmation on bulk operation.')} (${chalk.grey(
+        uploadResponse.bulkOperationsId
+      )})`
+    );
     const success = await getBulkOpsStatus(uploadResponse.bulkOperationsId);
 
     if (success) {
@@ -327,9 +333,7 @@ const update = async () => {
   const batch = 100;
 
   console.log(
-    `Deleting ${removed.length} redirects in ${Math.ceil(
-      removed.length / 100
-    )} batches`
+    `Deleting ${removed.length} redirects in ${Math.ceil(removed.length / 100)} batches`
   );
 
   let i = 0;
@@ -345,16 +349,13 @@ const update = async () => {
     results.push(success);
   }
 
-  if (!results.every(i => i === true)) {
-    console.log(chalk.red("Some batches failed."))
+  if (!results.every((i) => i === true)) {
+    console.log(chalk.red('Some batches failed.'));
   }
 
   console.log(
-    `Adding ${added.length} redirects in ${Math.ceil(
-      added.length / 100
-    )} batches`
+    `Adding ${added.length} redirects in ${Math.ceil(added.length / 100)} batches`
   );
-
 
   i = 0;
   results.length = 0;
@@ -369,8 +370,8 @@ const update = async () => {
     results.push(success);
   }
 
-  if (!results.every(i => i === true)) {
-    console.log(chalk.red("Some batches failed."))
+  if (!results.every((i) => i === true)) {
+    console.log(chalk.red('Some batches failed.'));
   }
 
   if (await setListDescription(`Updated by Directomatic on ${Date()}`)) {
@@ -383,7 +384,7 @@ const wipe = async () => {
   const success = await emptyBulkList();
   const color = success ? chalk.green : chalk.red;
   console.log(`${chalk.yellow('Success?')} ${color(success ? 'complete' : 'failed')}`);
-}
+};
 
 switch (arg) {
   case 'status':

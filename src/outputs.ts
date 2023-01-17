@@ -192,9 +192,11 @@ export const uploadBulkList = async (
   });
 
   if (response === 429) {
-    console.log(`${
-      chalk.yellow("Rate Limited. Waiting 6 minutes.")
-    } (starting at ${new Date().getHours()}:${new Date().getMinutes()})`);
+    console.log(
+      `${chalk.yellow(
+        'Rate Limited. Waiting 6 minutes.'
+      )} (starting at ${new Date().getHours()}:${new Date().getMinutes()})`
+    );
     await new Promise((r) => setTimeout(r, 1000 * 60 * 6));
     return await uploadBulkList(list);
   }
@@ -241,9 +243,9 @@ export const uploadBulkList = async (
 export const deleteBulkListItems = async (
   list: BulkRedirectListItem[]
 ): Promise<DirectomaticResponse> => {
-  const items = list.flatMap(r => {
-    if ("id" in r) {
-      return { id: r.id }
+  const items = list.flatMap((r) => {
+    if ('id' in r) {
+      return { id: r.id };
     } else {
       return [];
     }
@@ -274,9 +276,11 @@ export const deleteBulkListItems = async (
   });
 
   if (response === 429) {
-    console.log(`${
-      chalk.yellow("Rate Limited. Waiting 6 minutes.")
-    } (starting at ${new Date().getHours()}:${new Date().getMinutes()})`);
+    console.log(
+      `${chalk.yellow(
+        'Rate Limited. Waiting 6 minutes.'
+      )} (starting at ${new Date().getHours()}:${new Date().getMinutes()})`
+    );
     await new Promise((r) => setTimeout(r, 1000 * 60 * 6));
     return await deleteBulkListItems(list);
   }
@@ -293,7 +297,6 @@ export const deleteBulkListItems = async (
 
   return report;
 };
-
 
 /**
  * Query the Cloudflare API to fetch all currently published redirects.
@@ -323,8 +326,7 @@ export const getBulkListContents = async (): Promise<BulkRedirectListItem[]> => 
           authorization: `Bearer ${process.env.CF_API_TOKEN}`,
         },
       }
-    )
-    .then((res: any) => {
+    ).then((res: any) => {
       if (res.status === 200) {
         return res.json();
       }
@@ -342,9 +344,11 @@ export const getBulkListContents = async (): Promise<BulkRedirectListItem[]> => 
     });
 
     if (response === 429) {
-      console.log(`${
-        chalk.yellow("Rate Limited. Waiting 6 minutes.")
-      } (starting at ${new Date().getHours()}:${new Date().getMinutes()})`);
+      console.log(
+        `${chalk.yellow(
+          'Rate Limited. Waiting 6 minutes.'
+        )} (starting at ${new Date().getHours()}:${new Date().getMinutes()})`
+      );
       await new Promise((r) => setTimeout(r, 1000 * 60 * 6));
       // We're just in a loop, if we continue without updating cursor or i,
       // it'll repeat the same request.
