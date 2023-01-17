@@ -255,7 +255,33 @@ export const getBulkListContents = async (): Promise<BulkRedirectListItem[]> => 
           authorization: `Bearer ${process.env.CF_API_TOKEN}`,
         },
       }
-    ).then((res: any) => res.json());
+    )
+    .then((res: any) => {
+      if (res.status === 200) {
+        return res.json();
+      }
+
+      if (res.status === 429) {
+        // We got rate-limited, let's return that instead of the response object
+        // so we can re-try at the top-level.
+        return 429;
+      }
+
+      // @TODO: If we're here, we didn't get a 200 OK or a 429 RATE LIMIT...
+      // so what happened?
+      console.log(res);
+      return res.json();
+    });
+
+    if (response === 429) {
+      console.log(`${
+        chalk.yellow("Rate Limited. Waiting 6 minutes.")
+      } (starting at ${new Date().getHours()}:${new Date().getMinutes()})`);
+      await new Promise((r) => setTimeout(r, 1000 * 60 * 6));
+      // We're just in a loop, if we continue without updating cursor or i,
+      // it'll repeat the same request.
+      continue;
+    }
 
     if (response?.result?.length) {
       listContents.push(...response.result);
