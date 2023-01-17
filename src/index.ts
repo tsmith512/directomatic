@@ -84,6 +84,27 @@ export const Locales = [
 const arg = process.argv[2] || false;
 
 /**
+ * Print usage instructions.
+ */
+const readme = () => {
+  console.log(`${chalk.blue('# Direct-o-matic!')}
+Usage: npm run <command>
+
+Supported commands:
+  status    Get number of redirects in sheet and Dash, show edit links
+  list      Get a summary list of redirects defined in the sheet
+  diff      Compare the computed redirects from the sheet to Dash
+  publish   Empty and repopulate the target bulk redirect list.
+            (WARNING: List may be empty or incomplete for a few minutes.)
+  update    Run a diff and delete / insert rules to sync Dash with the sheet.
+  wipe      Empty the target bulk redirect list.
+
+A configuration file ".env" must be present in the root directory of this
+codebase. See ".env.sample" for example configuration.
+`);
+};
+
+/**
  * STATUS: Confirm that we can read the Google Sheet and the Rules Lists,
  * count rows in each, and provide links to see each.
  */
@@ -328,6 +349,12 @@ const submitBatch = async (
   return uploadResponse.success || false;
 };
 
+/**
+ * UPDATE: Compare the redirects that would be created by the spreadsheet to what
+ * exists in Dash (uses diff()), then push the deletions followed by the additions.
+ *
+ * @TODO: Would be great to have a step for confirmation in the middle.
+ */
 const update = async () => {
   const { added, removed } = await diff();
   const batch = 100;
@@ -379,6 +406,9 @@ const update = async () => {
   }
 };
 
+/**
+ * WIPE: PUT an empty payload to the list, clearing out its contents.
+ */
 const wipe = async () => {
   console.log('Truncating the existing list...');
   const success = await emptyBulkList();
@@ -404,5 +434,9 @@ switch (arg) {
     break;
   case 'wipe':
     wipe();
+    break;
+  case 'readme':
+  default:
+    readme();
     break;
 }

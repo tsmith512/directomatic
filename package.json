@@ -6,6 +6,7 @@
     "format": "prettier --write  '*.{json,js}' 'src/**/*.{js,ts}' 'test/**/*.{js,ts}'",
     "lint": "eslint --max-warnings=0 src && prettier --check '*.{json,js}' 'src/**/*.{js,ts}' 'test/**/*.{js,ts}'",
     "prettier": "prettier --write '*.{json,js}' 'src/**/*.{js,ts}' 'test/**/*.{js,ts}'",
+    "readme": "NODE_NO_WARNINGS=1 ts-node-esm src/index.ts readme",
     "status": "NODE_NO_WARNINGS=1 ts-node-esm src/index.ts status",
     "list": "NODE_NO_WARNINGS=1 ts-node-esm src/index.ts list",
     "diff": "NODE_NO_WARNINGS=1 ts-node-esm src/index.ts diff",
