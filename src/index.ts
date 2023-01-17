@@ -5,6 +5,7 @@ import { checkSpreadsheetStatus, fetchRedirectRows } from './inputs';
 import { processSheetRow, ruleInList } from './processing';
 import {
   BulkRedirectListItem,
+  deleteBulkListItems,
   emptyBulkList,
   getBulkListContents,
   getBulkListStatus,
@@ -148,8 +149,16 @@ const list = async () => {
 /**
  * DIFF: Pull and process the redirects from the spreadsheet to report on what
  * will be added and what will be removed on a subsequent /publish.
+ *
+ * This function will also return these lists so it can be called as an analysis
+ * step prior to an update.
+ *
+ * @returns ({ removed: BulkRedirectListItem[], added: BulkRedirectListItem[]})
  */
-const diff = async () => {
+const diff = async (): Promise<{
+  removed: BulkRedirectListItem[],
+  added: BulkRedirectListItem[],
+}> => {
   // Source the unprocessed redirects list from the Google Sheet.
   const inputRows = await fetchRedirectRows();
 
@@ -185,6 +194,15 @@ const diff = async () => {
   console.log(messages.join('\n'));
 
   // @TODO: What is a useful way to actually dump these?
+  if (removedRules.length) {
+    console.log(`${chalk.red('## To Remove:')} (these are only in Dash)`);
+    console.log(
+      removedRules
+        .map((r) => `${r.redirect.source_url} --> ${r.redirect.target_url}`)
+        .join('\n')
+    );
+  }
+
   if (addedRules.length) {
     console.log(`${chalk.green('## To Add:')} (these are only in the spreadshet)`);
     console.log(
@@ -194,14 +212,7 @@ const diff = async () => {
     );
   }
 
-  if (removedRules.length) {
-    console.log(`${chalk.red('## To Remove:')} (these are only in Dash)`);
-    console.log(
-      removedRules
-        .map((r) => `${r.redirect.source_url} --> ${r.redirect.target_url}`)
-        .join('\n')
-    );
-  }
+  return { removed: removedRules, added: addedRules };
 };
 
 /**
@@ -228,23 +239,23 @@ const publish = async () => {
   // made, and make them, rather than doing a truncate / insert.
   console.log('Truncating the existing list...');
   await emptyBulkList();
+  const batch = 500;
 
   console.log(
     `Uploading ${bulkList.length} redirects in ${Math.ceil(
-      bulkList.length / 1000
+      bulkList.length / batch
     )} batches`
   );
 
   // If you POST too many redirects at once, you'll get a rate limiting response
   // so chunk the list in batches of 1000 and post one at a time.
   let i = 0;
-  const batch = 500;
-  const results: boolean[] = []
+  const results: boolean[] = [];
   for (let n = 0; n < bulkList.length; n += batch) {
     i++;
     console.log(chalk.yellow(`### Batch ${i}`));
 
-    const success = await uploadBatch(i, bulkList.slice(n, n + batch));
+    const success = await submitBatch(i, 'post', bulkList.slice(n, n + batch));
     const color = success ? chalk.green : chalk.red;
 
     console.log(color(`Batch ${i}: ${success ? 'complete' : 'failed'}`));
@@ -257,14 +268,23 @@ const publish = async () => {
 };
 
 /**
- * Upload a set of redirects and report on (and await) the results.
+ * POST or DELETE a set of redirects and report on (and await) the results.
  */
-const uploadBatch = async (
+const submitBatch = async (
   i: number,
+  m: string,
   batchList: BulkRedirectListItem[]
 ): Promise<boolean> => {
   // Send the processed list to CF
-  const uploadResponse = await uploadBulkList(batchList);
+  let uploadResponse: DirectomaticResponse;
+  if (m === 'post') {
+    uploadResponse = await uploadBulkList(batchList);
+  } else if (m === 'delete') {
+    uploadResponse = await deleteBulkListItems(batchList);
+  } else {
+    console.log(`${chalk.red("Error:")} submit method must be "post" or "delete", got "${m}".`)
+    return false;
+  }
 
   const color = uploadResponse.success ? chalk.green : chalk.red;
   console.log(`Success? ${color(uploadResponse.success)}`);
@@ -302,6 +322,62 @@ const uploadBatch = async (
   return uploadResponse.success || false;
 };
 
+const update = async () => {
+  const { added, removed } = await diff();
+  const batch = 100;
+
+  console.log(
+    `Deleting ${removed.length} redirects in ${Math.ceil(
+      removed.length / 100
+    )} batches`
+  );
+
+  let i = 0;
+  const results: boolean[] = [];
+  for (let n = 0; n < removed.length; n += batch) {
+    i++;
+    console.log(chalk.yellow(`### Batch ${i}`));
+
+    const success = await submitBatch(i, 'delete', removed.slice(n, n + batch));
+    const color = success ? chalk.green : chalk.red;
+
+    console.log(color(`Batch ${i}: ${success ? 'complete' : 'failed'}`));
+    results.push(success);
+  }
+
+  if (!results.every(i => i === true)) {
+    console.log(chalk.red("Some batches failed."))
+  }
+
+  console.log(
+    `Adding ${added.length} redirects in ${Math.ceil(
+      added.length / 100
+    )} batches`
+  );
+
+
+  i = 0;
+  results.length = 0;
+  for (let n = 0; n < added.length; n += batch) {
+    i++;
+    console.log(chalk.yellow(`### Batch ${i}`));
+
+    const success = await submitBatch(i, 'post', added.slice(n, n + batch));
+    const color = success ? chalk.green : chalk.red;
+
+    console.log(color(`Batch ${i}: ${success ? 'complete' : 'failed'}`));
+    results.push(success);
+  }
+
+  if (!results.every(i => i === true)) {
+    console.log(chalk.red("Some batches failed."))
+  }
+
+  if (await setListDescription(`Updated by Directomatic on ${Date()}`)) {
+    console.log(`${chalk.gray('Updated datestamp in list description.')}`);
+  }
+};
+
 const wipe = async () => {
   console.log('Truncating the existing list...');
   const success = await emptyBulkList();
@@ -321,6 +397,9 @@ switch (arg) {
     break;
   case 'publish':
     publish();
+    break;
+  case 'update':
+    update();
     break;
   case 'wipe':
     wipe();

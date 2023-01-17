@@ -228,6 +228,74 @@ export const uploadBulkList = async (
 };
 
 /**
+ * Given a list of individual rules, DELETE them. (Requires that they have an
+ * id property, generally set by having fetched them. Does not match src/dest
+ * pairs.)
+ *
+ * @TODO: This is very similar to uploadBulkList(), consolidate?? Although the
+ * shape of the API payload is different.
+ *
+ * @param list (BulkRedirectListItem[]) The rules ready to upload
+ * @returns TBD -- API response from Cloudflare directly
+ */
+export const deleteBulkListItems = async (
+  list: BulkRedirectListItem[]
+): Promise<DirectomaticResponse> => {
+  const items = list.flatMap(r => {
+    if ("id" in r) {
+      return { id: r.id }
+    } else {
+      return [];
+    }
+  });
+
+  const response: any = await fetch(listItemsApi, {
+    method: 'DELETE',
+    headers: {
+      'content-type': 'application/json',
+      'authorization': `Bearer ${process.env.CF_API_TOKEN}`,
+    },
+    body: JSON.stringify({ items: items }),
+  }).then((res) => {
+    if (res.status === 200) {
+      return res.json();
+    }
+
+    if (res.status === 429) {
+      // We got rate-limited, let's return that instead of the response object
+      // so we can re-try at the top-level.
+      return 429;
+    }
+
+    // @TODO: If we're here, we didn't get a 200 OK or a 429 RATE LIMIT...
+    // so what happened?
+    console.log(res);
+    return res.json();
+  });
+
+  if (response === 429) {
+    console.log(`${
+      chalk.yellow("Rate Limited. Waiting 6 minutes.")
+    } (starting at ${new Date().getHours()}:${new Date().getMinutes()})`);
+    await new Promise((r) => setTimeout(r, 1000 * 60 * 6));
+    return await deleteBulkListItems(list);
+  }
+
+  const report: DirectomaticResponse = {
+    success: response?.success || false,
+    errors: response?.errors || [],
+    messages: response?.messages || [],
+  };
+
+  if (response.result?.operation_id) {
+    report.bulkOperationsId = response.result.operation_id;
+  }
+
+  return report;
+};
+
+
+/**
  * Query the Cloudflare API to fetch all currently published redirects.
  *
  * @TODO: Cache this locally, wow this takes a while.
