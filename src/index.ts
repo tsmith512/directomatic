@@ -55,7 +55,6 @@ export interface DirectomaticResponse {
   bulkOperationsId?: string; // The bulk operation assigned, if any
 }
 
-// @TODO: Full listing for cf.com but this should be configurable. Move to env var?
 export const Locales = process.env?.PREFIXES?.split(',') || [];
 
 const arg = process.argv[2] || false;

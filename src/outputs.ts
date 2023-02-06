@@ -71,12 +71,6 @@ export const makeBulkList = (input: RedirectProps[]): BulkRedirectListItem[] => 
     // Add in locale-prefixed paths for localized redirects.
     if (row.localized) {
       for (const locale of Locales) {
-        // We don't use en-us as a locale prefix on Marketing Site.
-        if (locale === 'en-us') {
-          continue;
-        }
-
-        // For other locales, add a redirect for that locale, too.
         list.push({
           source_url: makeFullURL(row.source, locale),
           target_url: makeFullURL(row.destination, locale),
