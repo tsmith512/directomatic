@@ -242,6 +242,7 @@ const publish = async () => {
   // made, and make them, rather than doing a truncate / insert.
   console.log('Truncating the existing list...');
   await emptyBulkList();
+  // @TODO: Need to check if this succeeded
   const batch = 500;
 
   console.log(
@@ -318,7 +319,6 @@ const submitBatch = async (
     const success = await getBulkOpsStatus(uploadResponse.bulkOperationsId);
 
     if (success) {
-      console.log(chalk.green(`Batch ${i} accepted.`));
       return true;
     } else {
       console.log(chalk.red(`Bulk operation failed for batch ${i}.`));

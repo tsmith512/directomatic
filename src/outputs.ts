@@ -144,6 +144,7 @@ export const emptyBulkList = async (): Promise<boolean> => {
     body: JSON.stringify([]),
   })
     .then((res: any) => res.json())
+    // @TODO: Need to check for rate limiting here
     .then((payload: any) => payload.success as boolean);
 };
 
@@ -384,7 +385,6 @@ export const getBulkOpsStatus = async (id: string): Promise<boolean> => {
     .then((res) => res.json())
     .then(async (payload) => {
       if (payload.result.status === 'completed') {
-        console.log(chalk.green('Bulk Operation completed.'));
         return true;
       } else if (payload.result.status === 'failed') {
         console.log(chalk.red('Bulk Operation failed:'));
