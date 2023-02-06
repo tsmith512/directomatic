@@ -56,30 +56,7 @@ export interface DirectomaticResponse {
 }
 
 // @TODO: Full listing for cf.com but this should be configurable. Move to env var?
-export const Locales = [
-  'de-de',
-  'en-au',
-  'en-ca',
-  'en-gb',
-  'en-in',
-  'en-us',
-  'es-es',
-  'fr-fr',
-  'id-id',
-  'it-it',
-  'ja-jp',
-  'ko-kr',
-  'nl-nl',
-  'pt-br',
-  'ru-ru',
-  'sv-se',
-  'th-th',
-  'tr-tr',
-  'vi-vn',
-  'zh-cn',
-  'zh-hans-cn',
-  'zh-tw',
-];
+export const Locales = process.env?.PREFIXES?.split(',') || [];
 
 const arg = process.argv[2] || false;
 
