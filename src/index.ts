@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import chalk from 'chalk';
+import yesno from 'yesno';
 
 import { checkSpreadsheetStatus, fetchRedirectRows } from './inputs';
 import { processSheetRow, ruleInList } from './processing';
@@ -232,6 +233,11 @@ const publish = async () => {
   // Format as needed for the Cloudflare Ruleset API
   const bulkList = makeBulkList(redirectsList);
 
+  console.log(chalk.red('\nList may be incomplete as it is rebuilt. Update is safer.'));
+  if (!await yesno({ question: `${chalk.yellow('Truncate and publish?')} (Y/N)`})) {
+    return;
+  }
+
   // @TODO: Long-term, it would be better to figure out what changes need to be
   // made, and make them, rather than doing a truncate / insert.
   console.log('Truncating the existing list...');
@@ -334,6 +340,11 @@ const submitBatch = async (
 const update = async () => {
   const { added, removed } = await diff();
   const batch = 100;
+
+  console.log('\nDeletes will be processed before adds.');
+  if (!await yesno({ question: `${chalk.yellow('Proceed with updates?')} (Y/N)`})) {
+    return;
+  }
 
   console.log(
     `Deleting ${removed.length} redirects in ${Math.ceil(removed.length / 100)} batches`
