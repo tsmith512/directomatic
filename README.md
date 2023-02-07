@@ -55,9 +55,9 @@ longer execution times were needed.
 - Then open "Credentials" or visit https://console.cloud.google.com/apis/credentials
 - Use "Create Credentials" to create "API Key"
 - Edit that API key to restrict it to the "Google Sheets API" only.
-- Copy that API key and use `wrangler secret save GSHEETS_API_KEY`
+- Copy that API key to your `.env` file for `GSHEETS_API_KEY`
 - Open the spreadsheet and grab its id from the URL: `https://docs.google.com/spreadsheets/d/THIS_PART_IS_THE_SPREADSHEET_ID/edit#gid=0`
-- Copy that ID and use `wrangler secret save GSHEETS_ID`
+- Copy that ID to your `.env` file for `GSHEETS_ID`
 
 ### Cloudflare Setup
 
@@ -72,8 +72,8 @@ longer execution times were needed.
   - "Content type" _must be "Redirect."_
 - Grab your Account Tag (ID) and List ID from the URL of the edit page:
   - `https://dash.cloudflare.com/ACCOUNT_ID_HERE/configurations/lists/LIST_ID_HERE/add`
-  - Save the account tag with `wrangler secret save CF_ACCT_ID`
-  - Save the list ID with `wrangler secret save CF_LIST_ID`
+  - Save the account tag to your `.env` as `CF_ACCT_ID`
+  - Save the list ID to your `.env` as `CF_LIST_ID`
 
 **Provision the API Key**
 
@@ -86,7 +86,7 @@ longer execution times were needed.
 - If you login has access to multiple accounts, it's a good idea to restrict
   this key to a specific account under "Account Resources."
 - The key will only be displayed once when it is created!
-- Copy the key and save with `wrangler secret save CF_API_TOKEN`
+- Copy the key to your `.env` as `CF_API_TOKEN`
 
 ## Usage
 
