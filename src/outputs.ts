@@ -71,12 +71,6 @@ export const makeBulkList = (input: RedirectProps[]): BulkRedirectListItem[] => 
     // Add in locale-prefixed paths for localized redirects.
     if (row.localized) {
       for (const locale of Locales) {
-        // We don't use en-us as a locale prefix on Marketing Site.
-        if (locale === 'en-us') {
-          continue;
-        }
-
-        // For other locales, add a redirect for that locale, too.
         list.push({
           source_url: makeFullURL(row.source, locale),
           target_url: makeFullURL(row.destination, locale),
@@ -150,6 +144,7 @@ export const emptyBulkList = async (): Promise<boolean> => {
     body: JSON.stringify([]),
   })
     .then((res: any) => res.json())
+    // @TODO: Need to check for rate limiting here
     .then((payload: any) => payload.success as boolean);
 };
 
@@ -192,9 +187,11 @@ export const uploadBulkList = async (
   });
 
   if (response === 429) {
-    console.log(`${
-      chalk.yellow("Rate Limited. Waiting 6 minutes.")
-    } (starting at ${new Date().getHours()}:${new Date().getMinutes()})`);
+    console.log(
+      `${chalk.yellow(
+        'Rate Limited. Waiting 6 minutes.'
+      )} (starting at ${new Date().getHours()}:${new Date().getMinutes()})`
+    );
     await new Promise((r) => setTimeout(r, 1000 * 60 * 6));
     return await uploadBulkList(list);
   }
@@ -221,6 +218,75 @@ export const uploadBulkList = async (
 
   // No errors on upload, update the description with the name of this app + date
   else {
+    report.bulkOperationsId = response.result.operation_id;
+  }
+
+  return report;
+};
+
+/**
+ * Given a list of individual rules, DELETE them. (Requires that they have an
+ * id property, generally set by having fetched them. Does not match src/dest
+ * pairs.)
+ *
+ * @TODO: This is very similar to uploadBulkList(), consolidate?? Although the
+ * shape of the API payload is different.
+ *
+ * @param list (BulkRedirectListItem[]) The rules ready to upload
+ * @returns TBD -- API response from Cloudflare directly
+ */
+export const deleteBulkListItems = async (
+  list: BulkRedirectListItem[]
+): Promise<DirectomaticResponse> => {
+  const items = list.flatMap((r) => {
+    if ('id' in r) {
+      return { id: r.id };
+    } else {
+      return [];
+    }
+  });
+
+  const response: any = await fetch(listItemsApi, {
+    method: 'DELETE',
+    headers: {
+      'content-type': 'application/json',
+      'authorization': `Bearer ${process.env.CF_API_TOKEN}`,
+    },
+    body: JSON.stringify({ items: items }),
+  }).then((res) => {
+    if (res.status === 200) {
+      return res.json();
+    }
+
+    if (res.status === 429) {
+      // We got rate-limited, let's return that instead of the response object
+      // so we can re-try at the top-level.
+      return 429;
+    }
+
+    // @TODO: If we're here, we didn't get a 200 OK or a 429 RATE LIMIT...
+    // so what happened?
+    console.log(res);
+    return res.json();
+  });
+
+  if (response === 429) {
+    console.log(
+      `${chalk.yellow(
+        'Rate Limited. Waiting 6 minutes.'
+      )} (starting at ${new Date().getHours()}:${new Date().getMinutes()})`
+    );
+    await new Promise((r) => setTimeout(r, 1000 * 60 * 6));
+    return await deleteBulkListItems(list);
+  }
+
+  const report: DirectomaticResponse = {
+    success: response?.success || false,
+    errors: response?.errors || [],
+    messages: response?.messages || [],
+  };
+
+  if (response.result?.operation_id) {
     report.bulkOperationsId = response.result.operation_id;
   }
 
@@ -255,7 +321,34 @@ export const getBulkListContents = async (): Promise<BulkRedirectListItem[]> => 
           authorization: `Bearer ${process.env.CF_API_TOKEN}`,
         },
       }
-    ).then((res: any) => res.json());
+    ).then((res: any) => {
+      if (res.status === 200) {
+        return res.json();
+      }
+
+      if (res.status === 429) {
+        // We got rate-limited, let's return that instead of the response object
+        // so we can re-try at the top-level.
+        return 429;
+      }
+
+      // @TODO: If we're here, we didn't get a 200 OK or a 429 RATE LIMIT...
+      // so what happened?
+      console.log(res);
+      return res.json();
+    });
+
+    if (response === 429) {
+      console.log(
+        `${chalk.yellow(
+          'Rate Limited. Waiting 6 minutes.'
+        )} (starting at ${new Date().getHours()}:${new Date().getMinutes()})`
+      );
+      await new Promise((r) => setTimeout(r, 1000 * 60 * 6));
+      // We're just in a loop, if we continue without updating cursor or i,
+      // it'll repeat the same request.
+      continue;
+    }
 
     if (response?.result?.length) {
       listContents.push(...response.result);
@@ -292,7 +385,6 @@ export const getBulkOpsStatus = async (id: string): Promise<boolean> => {
     .then((res) => res.json())
     .then(async (payload) => {
       if (payload.result.status === 'completed') {
-        console.log(chalk.green('Bulk Operation completed.'));
         return true;
       } else if (payload.result.status === 'failed') {
         console.log(chalk.red('Bulk Operation failed:'));

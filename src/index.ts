@@ -1,10 +1,12 @@
 import 'dotenv/config';
 import chalk from 'chalk';
+import yesno from 'yesno';
 
 import { checkSpreadsheetStatus, fetchRedirectRows } from './inputs';
 import { processSheetRow, ruleInList } from './processing';
 import {
   BulkRedirectListItem,
+  deleteBulkListItems,
   emptyBulkList,
   getBulkListContents,
   getBulkListStatus,
@@ -54,33 +56,30 @@ export interface DirectomaticResponse {
   bulkOperationsId?: string; // The bulk operation assigned, if any
 }
 
-// @TODO: Full listing for cf.com but this should be configurable. Move to env var?
-export const Locales = [
-  'de-de',
-  'en-au',
-  'en-ca',
-  'en-gb',
-  'en-in',
-  'en-us',
-  'es-es',
-  'fr-fr',
-  'id-id',
-  'it-it',
-  'ja-jp',
-  'ko-kr',
-  'nl-nl',
-  'pt-br',
-  'ru-ru',
-  'sv-se',
-  'th-th',
-  'tr-tr',
-  'vi-vn',
-  'zh-cn',
-  'zh-hans-cn',
-  'zh-tw',
-];
+export const Locales = process.env?.PREFIXES?.split(',') || [];
 
 const arg = process.argv[2] || false;
+
+/**
+ * Print usage instructions.
+ */
+const readme = () => {
+  console.log(`${chalk.blue('# Direct-o-matic!')}
+Usage: npm run <command>
+
+Supported commands:
+  status    Get number of redirects in sheet and Dash, show edit links
+  list      Get a summary list of redirects defined in the sheet
+  diff      Compare the computed redirects from the sheet to Dash
+  publish   Empty and repopulate the target bulk redirect list.
+            (WARNING: List may be empty or incomplete for a few minutes.)
+  update    Run a diff and delete / insert rules to sync Dash with the sheet.
+  wipe      Empty the target bulk redirect list.
+
+A configuration file ".env" must be present in the root directory of this
+codebase. See ".env.sample" for example configuration.
+`);
+};
 
 /**
  * STATUS: Confirm that we can read the Google Sheet and the Rules Lists,
@@ -148,8 +147,16 @@ const list = async () => {
 /**
  * DIFF: Pull and process the redirects from the spreadsheet to report on what
  * will be added and what will be removed on a subsequent /publish.
+ *
+ * This function will also return these lists so it can be called as an analysis
+ * step prior to an update.
+ *
+ * @returns ({ removed: BulkRedirectListItem[], added: BulkRedirectListItem[]})
  */
-const diff = async () => {
+const diff = async (): Promise<{
+  removed: BulkRedirectListItem[];
+  added: BulkRedirectListItem[];
+}> => {
   // Source the unprocessed redirects list from the Google Sheet.
   const inputRows = await fetchRedirectRows();
 
@@ -185,6 +192,15 @@ const diff = async () => {
   console.log(messages.join('\n'));
 
   // @TODO: What is a useful way to actually dump these?
+  if (removedRules.length) {
+    console.log(`${chalk.red('## To Remove:')} (these are only in Dash)`);
+    console.log(
+      removedRules
+        .map((r) => `${r.redirect.source_url} --> ${r.redirect.target_url}`)
+        .join('\n')
+    );
+  }
+
   if (addedRules.length) {
     console.log(`${chalk.green('## To Add:')} (these are only in the spreadshet)`);
     console.log(
@@ -194,14 +210,7 @@ const diff = async () => {
     );
   }
 
-  if (removedRules.length) {
-    console.log(`${chalk.red('## To Remove:')} (these are only in Dash)`);
-    console.log(
-      removedRules
-        .map((r) => `${r.redirect.source_url} --> ${r.redirect.target_url}`)
-        .join('\n')
-    );
-  }
+  return { removed: removedRules, added: addedRules };
 };
 
 /**
@@ -224,27 +233,33 @@ const publish = async () => {
   // Format as needed for the Cloudflare Ruleset API
   const bulkList = makeBulkList(redirectsList);
 
+  console.log(chalk.red('\nList may be incomplete as it is rebuilt. Update is safer.'));
+  if (!await yesno({ question: `${chalk.yellow('Truncate and publish?')} (Y/N)`})) {
+    return;
+  }
+
   // @TODO: Long-term, it would be better to figure out what changes need to be
   // made, and make them, rather than doing a truncate / insert.
   console.log('Truncating the existing list...');
   await emptyBulkList();
+  // @TODO: Need to check if this succeeded
+  const batch = 500;
 
   console.log(
     `Uploading ${bulkList.length} redirects in ${Math.ceil(
-      bulkList.length / 1000
+      bulkList.length / batch
     )} batches`
   );
 
   // If you POST too many redirects at once, you'll get a rate limiting response
   // so chunk the list in batches of 1000 and post one at a time.
   let i = 0;
-  const batch = 500;
-  const results: boolean[] = []
+  const results: boolean[] = [];
   for (let n = 0; n < bulkList.length; n += batch) {
     i++;
     console.log(chalk.yellow(`### Batch ${i}`));
 
-    const success = await uploadBatch(i, bulkList.slice(n, n + batch));
+    const success = await submitBatch(i, 'post', bulkList.slice(n, n + batch));
     const color = success ? chalk.green : chalk.red;
 
     console.log(color(`Batch ${i}: ${success ? 'complete' : 'failed'}`));
@@ -257,14 +272,25 @@ const publish = async () => {
 };
 
 /**
- * Upload a set of redirects and report on (and await) the results.
+ * POST or DELETE a set of redirects and report on (and await) the results.
  */
-const uploadBatch = async (
+const submitBatch = async (
   i: number,
+  m: string,
   batchList: BulkRedirectListItem[]
 ): Promise<boolean> => {
   // Send the processed list to CF
-  const uploadResponse = await uploadBulkList(batchList);
+  let uploadResponse: DirectomaticResponse;
+  if (m === 'post') {
+    uploadResponse = await uploadBulkList(batchList);
+  } else if (m === 'delete') {
+    uploadResponse = await deleteBulkListItems(batchList);
+  } else {
+    console.log(
+      `${chalk.red('Error:')} submit method must be "post" or "delete", got "${m}".`
+    );
+    return false;
+  }
 
   const color = uploadResponse.success ? chalk.green : chalk.red;
   console.log(`Success? ${color(uploadResponse.success)}`);
@@ -285,11 +311,14 @@ const uploadBatch = async (
   }
 
   if (uploadResponse.bulkOperationsId) {
-    console.log(`${chalk.white('Awaiting confirmation on bulk operation.')} (${chalk.grey(uploadResponse.bulkOperationsId)})`);
+    console.log(
+      `${chalk.white('Awaiting confirmation on bulk operation.')} (${chalk.grey(
+        uploadResponse.bulkOperationsId
+      )})`
+    );
     const success = await getBulkOpsStatus(uploadResponse.bulkOperationsId);
 
     if (success) {
-      console.log(chalk.green(`Batch ${i} accepted.`));
       return true;
     } else {
       console.log(chalk.red(`Bulk operation failed for batch ${i}.`));
@@ -302,12 +331,77 @@ const uploadBatch = async (
   return uploadResponse.success || false;
 };
 
+/**
+ * UPDATE: Compare the redirects that would be created by the spreadsheet to what
+ * exists in Dash (uses diff()), then push the deletions followed by the additions.
+ *
+ * @TODO: Would be great to have a step for confirmation in the middle.
+ */
+const update = async () => {
+  const { added, removed } = await diff();
+  const batch = 100;
+
+  console.log('\nDeletes will be processed before adds.');
+  if (!await yesno({ question: `${chalk.yellow('Proceed with updates?')} (Y/N)`})) {
+    return;
+  }
+
+  console.log(
+    `Deleting ${removed.length} redirects in ${Math.ceil(removed.length / 100)} batches`
+  );
+
+  let i = 0;
+  const results: boolean[] = [];
+  for (let n = 0; n < removed.length; n += batch) {
+    i++;
+    console.log(chalk.yellow(`### Batch ${i}`));
+
+    const success = await submitBatch(i, 'delete', removed.slice(n, n + batch));
+    const color = success ? chalk.green : chalk.red;
+
+    console.log(color(`Batch ${i}: ${success ? 'complete' : 'failed'}`));
+    results.push(success);
+  }
+
+  if (!results.every((i) => i === true)) {
+    console.log(chalk.red('Some batches failed.'));
+  }
+
+  console.log(
+    `Adding ${added.length} redirects in ${Math.ceil(added.length / 100)} batches`
+  );
+
+  i = 0;
+  results.length = 0;
+  for (let n = 0; n < added.length; n += batch) {
+    i++;
+    console.log(chalk.yellow(`### Batch ${i}`));
+
+    const success = await submitBatch(i, 'post', added.slice(n, n + batch));
+    const color = success ? chalk.green : chalk.red;
+
+    console.log(color(`Batch ${i}: ${success ? 'complete' : 'failed'}`));
+    results.push(success);
+  }
+
+  if (!results.every((i) => i === true)) {
+    console.log(chalk.red('Some batches failed.'));
+  }
+
+  if (await setListDescription(`Updated by Directomatic on ${Date()}`)) {
+    console.log(`${chalk.gray('Updated datestamp in list description.')}`);
+  }
+};
+
+/**
+ * WIPE: PUT an empty payload to the list, clearing out its contents.
+ */
 const wipe = async () => {
   console.log('Truncating the existing list...');
   const success = await emptyBulkList();
   const color = success ? chalk.green : chalk.red;
   console.log(`${chalk.yellow('Success?')} ${color(success ? 'complete' : 'failed')}`);
-}
+};
 
 switch (arg) {
   case 'status':
@@ -322,7 +416,14 @@ switch (arg) {
   case 'publish':
     publish();
     break;
+  case 'update':
+    update();
+    break;
   case 'wipe':
     wipe();
+    break;
+  case 'readme':
+  default:
+    readme();
     break;
 }

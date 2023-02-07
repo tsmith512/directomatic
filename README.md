@@ -35,11 +35,12 @@ longer execution times were needed.
   - `CF_ACCT_ID` the Account Tag (external ID) that owns the list
   - `CF_LIST_ID` the Rules List ID, which must be a "redirects" list
   - `CF_API_TOKEN` the API key for Cloudflare API
+  - `PREFIXES` a comma-separated list of locale prefixes to make entries for, if needed. If empty or unset; will be skipped.
 - Confirm these default values in `.env` (from `.env.sample`) are correct
   - `GSHEETS_API_ENDPOINT`
   - `CF_API_ENDDPOINT`
-  - @TODO: Locales are hard-coded but should be configurable.
 - Using Node 18+ (I highly recommend [NVM](https://github.com/nvm-sh/nvm))
+  - Run `nvm install` / `nvm use` (or your Node manager of choice. 18+ required.)
   - Run `npm install`
   - Run `npm run [task name]`
 
@@ -96,26 +97,25 @@ longer execution times were needed.
 - **Diff:** `npm run diff` to compare processed rules from the spreadsheet
   with the published rules on the Rules List API to see what would be added or
   removed. Note that the download of rules from Cloudflare can take time.
+- **Update:** `npm run update` to run a diff and then execute the changes without
+  doing a full replacement of the list (faster / safer) in batches.
 - **Publish:** Use `npm run publish` to process the spreadsheet into rules and
-  _replace_ the List on Cloudflare.
-  - Current limitation: this method truncates the list, then adds values back in
-    batches of 1000.
+  _replace_ the List on Cloudflare. Empties the list then rebuilds in batches.
 - If you haven't already, ["create a Bulk Redirect rule to enable the redirects in the list"](https://developers.cloudflare.com/rules/bulk-redirects/create-dashboard/#3-create-a-bulk-redirect-rule-to-enable-the-redirects-in-the-list) in the Cloudflare Dashboard.
 
 ## Known Limitations
 
-- **Big:** If you have a giant list, you may get ratelimited by the CF API,
-  which this script does not currently handle, resulting in failed list patches.
 - The spreadsheet must be set to "Anyone with the link can View"
 - The app will not enable/disable the List as a Bulk Redirect list, only update
 - The _publish_ function does a DROP then INSERT, meaning there's a few seconds
   where the list is empty.
 - The _diff_ function compares redirect rules exactly and will report both an
-  add and a removal for a rule that has changed.
+  _add_ and a _delete_ for a rule that has **changed**. (This works well with
+  `update`.)
 
 ### Troubleshooting
 
 - If Google Sheets returns a `400` error, make sure the tab with the redirects
-  list is called "Redirects" and that the spreadsheet is publicly readable.git
+  list is called "Redirects" and that the spreadsheet is publicly readable.
 - You may need to purge routes from CDN cache if the redirect does not take
   immediate effect.
